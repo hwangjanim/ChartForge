@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="ChartForge.Core/ChartForge.Core.csproj" />
+  <Project Path="ChartForge.Infrastructure/ChartForge.Infrastructure.csproj" />
 </Solution>
