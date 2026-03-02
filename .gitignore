@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # tailwind
 ChartForge.Web/tailwind.exe
+ChartForge.Web/wwwroot/app.css

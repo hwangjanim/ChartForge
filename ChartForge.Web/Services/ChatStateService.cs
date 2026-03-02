@@ -18,7 +18,6 @@ namespace ChartForge.Web.Services
 
         public int TotalVersions => ChartVersions.Count;
         public int ActiveVersionNumber => ActiveChartVersion.VersionNumber;
-       
 
         public bool CanGoPrev =>
             ActiveChartVersion is not null && ActiveVersionNumber > 1;

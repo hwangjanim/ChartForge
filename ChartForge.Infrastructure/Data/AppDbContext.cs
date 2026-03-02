@@ -1,5 +1,4 @@
 ﻿using ChartForge.Core.Entities;
-using ChartForge.Infrastructure.Data.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChartForge.Infrastructure.Data;
@@ -12,7 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
-    public DbSet<ChartState> ChartState { get; set; }
+    public DbSet<ChartState> ChartStates { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
