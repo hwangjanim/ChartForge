@@ -4,5 +4,6 @@ public enum ChartLibrary
 {
     ChartJs,
     D3,
-    HighCharts
+    HighCharts,
+    ECharts
 }

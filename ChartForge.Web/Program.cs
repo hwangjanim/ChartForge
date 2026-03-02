@@ -1,5 +1,6 @@
 using ChartForge.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using ChartForge.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,8 @@ builder.Services.AddHttpClient("N8nClient", client =>
         client.BaseAddress = new Uri(webhookUrl);
     }
 });
+
+builder.Services.AddScoped<ChatStateService>();
 
 var app = builder.Build();
 

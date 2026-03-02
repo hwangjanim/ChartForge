@@ -7,3 +7,7 @@ public enum MessageRole
     Tool,
     System
 }
+
+//message.Role = "user";
+//message.Role = "User"
+//message.Role = MessageRole.User;

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -11,5 +11,9 @@
     <ProjectReference Include="..\ChartForge.Core\ChartForge.Core.csproj" />
     <ProjectReference Include="..\ChartForge.Infrastructure\ChartForge.Infrastructure.csproj" />
   </ItemGroup>
+
+	<Target Name="Tailwind" BeforeTargets="Build">
+		<Exec Command="tailwind.exe -i ./wwwroot/input.css -o ./wwwroot/app.css --minify" WorkingDirectory="$(ProjectDir)" />
+	</Target>
 
 </Project>

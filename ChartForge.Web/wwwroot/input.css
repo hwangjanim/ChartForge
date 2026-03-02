@@ -1,0 +1,6 @@
+﻿@import "tailwindcss";
+
+@theme {
+    --color-openit-red: #300004;
+    --font-sans: 'Inter', system-ui, sans-serif;
+}

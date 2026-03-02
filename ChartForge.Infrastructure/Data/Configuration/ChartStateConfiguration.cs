@@ -27,7 +27,7 @@ public class ChartStateConfiguration : IEntityTypeConfiguration<ChartState>
             .HasConversion<string>()
             .HasMaxLength(20);
         
-        builder.Property(cs => cs.ChartConfigJson)
+        builder.Property(cs => cs.ChartSourceCode)
             .IsRequired()
             .HasColumnType("nvarchar(max)");
 

@@ -1,6 +1,7 @@
 ﻿namespace ChartForge.Core.Entities;
 public class Conversation
 {
+   
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? ChartTypeIcon { get; set; }
