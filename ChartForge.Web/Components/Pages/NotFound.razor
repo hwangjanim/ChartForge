@@ -1,5 +1,17 @@
-﻿<h3>NotFound</h3>
+﻿@page "/404"
+@page "/{*catchall}"
 
-@code {
+<PageTitle>Not Found</PageTitle>
 
-}
+<div class="flex flex-col items-center justify-center h-full w-full bg-white text-center space-y-6">
+    <div class="w-20 h-20 bg-gray-50 border border-gray-100 text-gray-400 rounded-3xl flex items-center justify-center text-4xl shadow-sm">
+        🧭
+    </div>
+    <h1 class="text-3xl font-semibold text-gray-800">Lost in the Forge?</h1>
+    <p class="text-gray-500 max-w-md">
+        We couldn't find the page or conversation you're looking for. It might have been moved or deleted.
+    </p>
+    <a href="/" class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
+        Return to Canvas
+    </a>
+</div>

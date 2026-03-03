@@ -1,5 +1,12 @@
-﻿<h3>NewChatButton</h3>
+﻿<button @onclick="OnClick"
+        class="flex items-center justify-center gap-2 flex-1 bg-openit-red hover:bg-red-900 text-white text-sm font-medium rounded-lg py-2 px-4 transition-colors duration-150">
+    <span class="text-lg leading-none">+</span>
+    <span>New Chat</span>
+</button>
 
 @code {
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
 
 }

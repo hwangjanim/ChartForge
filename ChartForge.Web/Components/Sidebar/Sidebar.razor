@@ -1,7 +1,123 @@
-﻿<h3>Sidebar</h3>
+﻿@implements IDisposable
+@inject ChatStateService ChatState
 
-@* dito 'yung Conversation List, New Chat +, Search, User Profile *@
+<aside class="flex flex-col w-64 min-w-64 h-full bg-white border-r border-gray-100 shrink-0">
+
+    @* Header *@
+    <div class="flex items-center justify-between px-4 py-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="w-5 h-5 bg-openit-red rounded-sm shrink-0"></div>
+            <span class="text-sm font-semibold text-gray-900">OpeniT</span>
+        </div>
+        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 15a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 1 0v13a.5.5 0 0 1-.5.5M0 8a.5.5 0 0 1 .5-.5h3.793L3.146 6.354a.5.5 0 1 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L4.293 8.5H.5A.5.5 0 0 1 0 8m11.707.5 1.147 1.146a.5.5 0 0 1-.708.708l-2-2a.5.5 0 0 1 0-.708l2-2a.5.5 0 0 1 .708.708L11.707 7.5H15.5a.5.5 0 0 1 0 1z" />
+            </svg>
+        </button>
+    </div>
+
+    @* New Chat + Search Toggle *@
+    <div class="flex items-center gap-2 px-3 pb-3 shrink-0">
+        <NewChatButton OnClick="HandleNewChat" />
+        <button @onclick="ToggleSearch"
+                class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+            </svg>
+        </button>
+    </div>
+
+    @* Search Bar *@
+    @if (_showSearch)
+    {
+        <div class="px-3 pb-3 shrink-0">
+            <SearchBar OnSearch="HandleSearch" />
+        </div>
+    }
+
+    @* Conversation List *@
+    <nav class="flex-1 overflow-y-auto px-2 py-1">
+        <ConversationList Conversations="GetActiveConversations()"
+                          ActiveConversationId="ChatState.ActiveConversation?.Id"
+                          SearchQuery="_searchQuery"
+                          OnSelect="HandleConversationSelected"
+                          OnRename="HandleRename" />
+    </nav>
+
+    @* User Footer *@
+    <div class="shrink-0 px-2 py-3 border-t border-gray-100">
+        @if (CurrentUser is not null)
+        {
+            <UserProfileFooter DisplayName="@CurrentUser.DisplayName"
+                               Email="@CurrentUser.Email" />
+        }
+    </div>
+
+</aside>
 
 @code {
+
+    [Parameter]
+    public User? CurrentUser { get; set; }
+
+    [Parameter]
+    public List<Conversation> Conversations { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnNewChat { get; set; }
+
+    [Parameter]
+    public EventCallback<Conversation> OnConversationSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<(int Id, string NewTitle)> OnRename { get; set; }
+
+    private bool _showSearch = false;
+    private string _searchQuery = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        ChatState.OnChange += HandleStateChanged;
+    }
+
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private List<Conversation> GetActiveConversations() =>
+        Conversations.Where(c => !c.IsDeleted).ToList();
+
+    private void ToggleSearch()
+    {
+        _showSearch = !_showSearch;
+        if (!_showSearch) _searchQuery = string.Empty;
+    }
+
+    private void HandleSearch(string query)
+    {
+        _searchQuery = query;
+    }
+
+    private async Task HandleNewChat()
+    {
+        ChatState.NewConversation();
+        await OnNewChat.InvokeAsync();
+    }
+
+    private async Task HandleConversationSelected(Conversation conversation)
+    {
+        await OnConversationSelected.InvokeAsync(conversation);
+    }
+
+    private async Task HandleRename((int Id, string NewTitle) args)
+    {
+        await OnRename.InvokeAsync(args);
+    }
+
+    public void Dispose()
+    {
+        ChatState.OnChange -= HandleStateChanged;
+    }
 
 }

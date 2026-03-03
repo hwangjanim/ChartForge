@@ -1,5 +1,27 @@
-﻿<h3>SearchBar</h3>
+﻿<div class="relative w-full">
+
+    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+        </svg>
+    </div>
+
+    <input @oninput="HandleInput"
+           type="text"
+           placeholder="Search chats..."
+           class="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 focus:bg-white border border-transparent focus:border-gray-300 rounded-lg outline-none transition-colors duration-150 text-gray-700 placeholder-gray-400" />
+
+</div>
 
 @code {
+
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? string.Empty;
+        await OnSearch.InvokeAsync(value);
+    }
 
 }

@@ -1,19 +1,5 @@
-﻿@using ChartForge.Web.Components.Sidebar
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 
-<div class="flex h-screen w-screen overflow-hidden bg-white text-gray-900 font-sans">
-    <aside class="w-64 flex-shrink-0 border-r border-gray-200 bg-gray-50 flex flex-col transition-all duration-300">
-        <Sidebar />
-    </aside>
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-        <div class="flex-1 flex overflow-hidden">
-            @Body
-        </div>
-    </main>
-</div>
-
-<div id="blazor-error-ui">
-    error error error
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">×</a>
-</div>
+<main class="flex h-screen w-screen overflow-hidden bg-white font-sans">
+    @Body
+</main>

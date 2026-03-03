@@ -1,41 +1,38 @@
 ﻿@page "/"
-@page "/c/{ConversationId:int}"
+@layout MainLayout
+@rendermode InteractiveServer
 
-<div class="flex h-full w-full bg-white">
-    <section class="flex flex-col w-full lg:w-[45%] xl:w-[40%] h-full border-r border-gray-200 relative">
-       <div class="flex-shrink-0">
-           <ChartForge.Web.Components.Chat.ChatHeader />
-       </div>
-       <div class="flex-1 overflow-y-auto p-4 scroll-smooth">
-            <ChartForge.Web.Components.Chat.ChatArea />
-       </div>
-       <div class="flex-shrink-0 p-4 bg-white relative">
-           <div class="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
-            <ChartForge.Web.Components.Chat.PromptInput />
-            <div class="mt-2 text-center text-xs text-gray-400 font-medium">
-                some kind of message ni radian xdd
-            </div>
-       </div>
-    </section>
-    <section class="hidden lg:flex flex-1 flex-col h-full bg-gray-50/50 relative">
-        <div class="flex-shrink-0 border-b border-gray-200 bg-white">
-            <ChartForge.Web.Components.Canvas.CanvasHeader />
-        </div>
-        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
-            <ChartForge.Web.Components.Chat.ChatArea />
-        </div>
-    </section>
+<PageTitle>ChartForge</PageTitle>
+
+<div class="flex w-full h-full">
+
+    <Sidebar CurrentUser="CurrentUserData"
+             Conversations="ConversationsData"
+             OnNewChat="HandleNewChat"
+             OnConversationSelected="HandleConversationSelected"
+             OnRename="HandleRename" />
+
+    <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-gray-50">
+    </div>
+
 </div>
 
 @code {
-    [Parameter]
-    public int? ConversationId { get; set; }
 
-    protected override void OnParametersSet()
+    private User? CurrentUserData { get; set; }
+    private List<Conversation> ConversationsData { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        if(ConversationId.HasValue)
-        {
-            // dito natin ilo-load 'yung chat
-        }
+        // TODO: Load actual user and conversations from your services
+        CurrentUserData = null; // Replace with actual user data
+        ConversationsData = new();
     }
+
+    private void HandleNewChat() { }
+
+    private void HandleConversationSelected(Conversation conversation) { }
+
+    private void HandleRename((int Id, string NewTitle) args) { }
+
 }

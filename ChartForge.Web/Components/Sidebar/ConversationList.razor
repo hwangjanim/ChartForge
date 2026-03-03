@@ -1,5 +1,77 @@
-﻿<h3>ConversationList</h3>
+﻿@if (!FilteredConversations.Any())
+{
+    <p class="px-3 py-4 text-xs text-gray-400 text-center">No conversations found.</p>
+}
+else
+{
+    @foreach (var group in GetGroupedConversations())
+    {
+        <div class="mb-3">
+
+            <p class="px-3 mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                @group.Label
+            </p>
+
+            @foreach (var conversation in group.Conversations)
+            {
+                <ConversationItem Conversation="conversation"
+                                  IsActive="ActiveConversationId == conversation.Id"
+                                  OnSelect="OnSelect"
+                                  OnRename="OnRename" />
+            }
+
+        </div>
+    }
+}
 
 @code {
+
+    [Parameter, EditorRequired]
+    public List<Conversation> Conversations { get; set; } = new();
+
+    [Parameter]
+    public int? ActiveConversationId { get; set; }
+
+    [Parameter]
+    public string SearchQuery { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<Conversation> OnSelect { get; set; }
+
+    [Parameter]
+    public EventCallback<(int Id, string NewTitle)> OnRename { get; set; }
+
+    private IEnumerable<Conversation> FilteredConversations => string.IsNullOrWhiteSpace(SearchQuery)
+        ? Conversations
+        : Conversations.Where(c => c.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private record ConversationGroup(string Label, List<Conversation> Conversations);
+
+    private List<ConversationGroup> GetGroupedConversations()
+    {
+        var now = DateTime.UtcNow;
+        var todayStart = now.Date;
+        var yesterdayStart = todayStart.AddDays(-1);
+        var thisWeekStart = todayStart.AddDays(-(int)now.DayOfWeek);
+        var thisMonthStart = new DateTime(now.Year, now.Month, 1);
+
+        var source = FilteredConversations.OrderByDescending(c => c.UpdatedAtUtc).ToList();
+
+        var today = source.Where(c => c.UpdatedAtUtc >= todayStart).ToList();
+        var yesterday = source.Where(c => c.UpdatedAtUtc >= yesterdayStart && c.UpdatedAtUtc < todayStart).ToList();
+        var thisWeek = source.Where(c => c.UpdatedAtUtc >= thisWeekStart && c.UpdatedAtUtc < yesterdayStart).ToList();
+        var thisMonth = source.Where(c => c.UpdatedAtUtc >= thisMonthStart && c.UpdatedAtUtc < thisWeekStart).ToList();
+        var older = source.Where(c => c.UpdatedAtUtc < thisMonthStart).ToList();
+
+        var groups = new List<ConversationGroup>();
+
+        if (today.Count > 0) groups.Add(new("Today", today));
+        if (yesterday.Count > 0) groups.Add(new("Yesterday", yesterday));
+        if (thisWeek.Count > 0) groups.Add(new("This Week", thisWeek));
+        if (thisMonth.Count > 0) groups.Add(new("This Month", thisMonth));
+        if (older.Count > 0) groups.Add(new("Older", older));
+
+        return groups;
+    }
 
 }

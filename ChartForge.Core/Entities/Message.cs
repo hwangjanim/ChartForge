@@ -7,7 +7,7 @@ public class Message
     public int Id { get; set; }
     public MessageRole Role { get; set; }
     public string Content { get; set; } = string.Empty;
-    public Guid? ChartStateId { get; set; }
+    public int? ChartStateId { get; set; }
     public DateTime SentAtUtc { get; set; }
     public int SequenceNumber { get; set; }
 
