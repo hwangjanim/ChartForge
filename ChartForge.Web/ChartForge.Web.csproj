@@ -12,8 +12,5 @@
     <ProjectReference Include="..\ChartForge.Infrastructure\ChartForge.Infrastructure.csproj" />
   </ItemGroup>
 
-	<Target Name="Tailwind" BeforeTargets="Build">
-		<Exec Command="tailwind.exe -i ./wwwroot/input.css -o ./wwwroot/app.css --minify" WorkingDirectory="$(ProjectDir)" />
-	</Target>
 
 </Project>

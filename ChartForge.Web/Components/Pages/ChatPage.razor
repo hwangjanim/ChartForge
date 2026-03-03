@@ -1,8 +1,15 @@
-﻿<h3>ChatPage</h3>
+﻿@page "/"
+@using ChartForge.Web.Components.Chat
 
 @* ito 'yung @Body ("/") *@
 <PageTitle>Chat Page</PageTitle>
 
+<div class="flex flex-col max-w-80">
+    <ChatHeader />
+
+    <MessageBubble />
+</div>
 @code {
+   
 
 }
