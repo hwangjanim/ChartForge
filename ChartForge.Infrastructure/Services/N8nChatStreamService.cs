@@ -1,8 +1,9 @@
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using ChartForge.Core.Entities.Features.Chat;
 using ChartForge.Core.Enums;
+using ChartForge.Core.Interfaces;
+using ChartForge.Core.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace ChartForge.Infrastructure.Services;

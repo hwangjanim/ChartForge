@@ -1,8 +1,8 @@
 using ChartForge.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using ChartForge.Web.Services;
-using ChartForge.Core.Entities.Features.Chat;
 using ChartForge.Infrastructure.Services;
+using ChartForge.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

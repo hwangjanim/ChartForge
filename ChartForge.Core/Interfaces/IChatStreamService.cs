@@ -1,6 +1,7 @@
+using ChartForge.Core.Models;
 using System.Runtime.CompilerServices;
 
-namespace ChartForge.Core.Entities.Features.Chat;
+namespace ChartForge.Core.Interfaces;
 
 public interface IChatStreamService
 {
