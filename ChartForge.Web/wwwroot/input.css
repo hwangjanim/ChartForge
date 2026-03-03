@@ -1,6 +1,22 @@
 ﻿@import "tailwindcss";
 
 @theme {
-    --color-openit-red: #300004;
+    --color-openit-red: #ef4444;
+    --color-openit-red-dark: #dc2626;
     --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Ensure custom colors are always visible */
+@layer utilities {
+    .bg-openit-red {
+        @apply bg-red-500;
+    }
+
+    .bg-openit-red-dark {
+        @apply bg-red-600;
+    }
+
+    .text-openit-red {
+        @apply text-red-500;
+    }
 }

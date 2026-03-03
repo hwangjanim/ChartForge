@@ -12,16 +12,19 @@
              OnConversationSelected="HandleConversationSelected"
              OnRename="HandleRename" />
 
-    <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-gray-50">
+    <div class="flex flex-col w-[380px] min-w-[380px] h-full border-r border-gray-100">
+        <ChatHeader />
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            @* <MessageBubble /> *@
+        </div>
+    </div>
+
+    <div class="flex flex-col flex-1 min-w-0 h-full bg-white">
+
     </div>
 
 </div>
 
-<div class="flex flex-col max-w-80">
-    <ChatHeader />
-
-    <MessageBubble />
-</div>
 @code {
 
     private User? CurrentUserData { get; set; }
@@ -29,15 +32,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load actual user and conversations from your services
-        CurrentUserData = null; // Replace with actual user data
+        CurrentUserData = null;
         ConversationsData = new();
     }
 
     private void HandleNewChat() { }
-
     private void HandleConversationSelected(Conversation conversation) { }
-
     private void HandleRename((int Id, string NewTitle) args) { }
 
 }
