@@ -1,25 +1,37 @@
-﻿@* TODO: Make this programatically *@
+﻿@using ChartForge.Web.Components.Icons
+@* TODO: Make this programatically *@
 @* User chat *@
 <div class="flex w-full justify-end">
-    <div class="max-w-[75%] bg-[#fff5f6] border border-red-200 rounded-xl p-4 text-sm">
-        Generate a bar chart showing monthly customer churn rate for the past 6 months. Pull from the Q3 CRM export.
+    <div class="flex flex-col items-end">
+        <div class="max-w-[90%] bg-[#fff5f6] border border-red-200 rounded-xl p-4 text-xs leading-relaxed">
+            Generate a bar chart showing monthly customer churn rate for the past 6 months. Pull from the Q3 CRM export.
+        </div>
+        <div class="text-[10px] mt-1 text-gray-400">
+            2:13PM
+        </div>
     </div>
 </div>
 
 
 @* Ai chat *@
 <div class="flex w-full justify-start">
-    <div class="flex items-start space-x-3 max-w-xl">
-        <div class="w-8 h-8 shrink-0 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">
-            Ai
+    <div class="flex flex-col gap-2 items-start space-x-3 max-w-xl">
+        <div class="flex gap-2 items-center">
+            <div class="w-6 h-6 shrink-0 rounded-lg bg-red-700 flex items-center justify-center text-white text-xs">
+                <AiIcon />
+            </div>
+
+            <span class="text-xs text-gray-400 mb-1">
+                Chart AI
+            </span>
         </div>
 
         <div class="flex flex-col">
-            <span class="text-sm text-gray-500 mb-1">
-                Chart AI
-            </span>
-            <div class="max-w-[75%] border border-gray-200 rounded-xl p-4 text-sm leading-relaxed bg-gray-50">
-            I've generated a bar chart visualising the monthly churn rate from August to January. There's a notable spike in October (4.2%) followed by a downward trend. The chart is now live in the canvas — this is Version 1.
+            <div class="max-w-[90%] border border-gray-200 rounded-xl p-4 text-xs leading-relaxed bg-gray-50">
+                I've generated a bar chart visualising the monthly churn rate from August to January. There's a notable spike in October (4.2%) followed by a downward trend. The chart is now live in the canvas — this is Version 1.
+            </div>
+            <div class="text-[10px] mt-1 text-gray-400">
+                2:13PM
             </div>
         </div>
     </div>

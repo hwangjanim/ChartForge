@@ -1,4 +1,16 @@
-﻿<h3>PromptInput</h3>
+﻿@using ChartForge.Web.Components.Icons
+
+<div class="flex flex-wrap">
+    <SuggestionChips />
+</div>
+
+<div class="flex items-center border-2 text-sm px-4 border-gray-200 bg-gray-50 rounded-lg">
+    <ClipIcon />
+    <input class="px-2 my-2 w-full outline-hidden" placeholder="Describe the chart you want"/>
+    <div class="cursor-pointer">
+        <SendIcon />
+    </div>
+</div>
 
 @code {
 

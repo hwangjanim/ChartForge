@@ -4,17 +4,17 @@
 @using ChartForge.Web.Components.Chat
 
 <div class="flex h-full w-full bg-white">
-    <section class="flex flex-col w-full lg:w-[45%] xl:w-[40%] h-full border-r border-gray-200 relative">
+    <section class="flex flex-col w-full lg:w-[30%] xl:w-[25%] h-full border-r border-gray-200 relative">
        <div class="flex-shrink-0">
            <ChartForge.Web.Components.Chat.ChatHeader />
        </div>
-       <div class="flex-1 overflow-y-auto p-4 scroll-smooth">
+       <div class="flex-1 overflow-y-auto scroll-smooth p-4">
             <ChartForge.Web.Components.Chat.ChatArea />
        </div>
-       <div class="flex-shrink-0 p-4 bg-white relative">
-           <div class="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+       <div class="flex-shrink-0 p-4 bg-white relative border-t-1 border-gray-200">
+           <div class="absolute -top-6 left-0 right-0 h-6 from-white to-transparent pointer-events-none"></div>
             <ChartForge.Web.Components.Chat.PromptInput />
-            <div class="mt-2 text-center text-xs text-gray-400 font-medium">
+            <div class="mt-2 text-center text-[10px] text-gray-400 font-medium">
                 some kind of message ni radian xdd
             </div>
        </div>
