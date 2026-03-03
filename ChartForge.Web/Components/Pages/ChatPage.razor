@@ -1,34 +1,40 @@
 ﻿@page "/"
-@layout MainLayout
-@rendermode InteractiveServer
+@page "/c/{ConversationId:int}"
 
-<PageTitle>ChartForge</PageTitle>
-
-<div class="flex w-full h-full">
-
-    <Sidebar CurrentUser="CurrentUserData"
-             Conversations="ConversationsData"
-             OnNewChat="HandleNewChat"
-             OnConversationSelected="HandleConversationSelected"
-             OnRename="HandleRename" />
-
-    <div class="flex flex-col w-[380px] min-w-[380px] h-full border-r border-gray-100">
-        <ChatHeader />
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
-            @* <MessageBubble /> *@
+<div class="flex h-full w-full bg-white">
+    <section class="flex flex-col w-full lg:w-[45%] xl:w-[40%] h-full border-r border-gray-200 relative">
+       <div class="flex-shrink-0">
+           <ChartForge.Web.Components.Chat.ChatHeader />
+       </div>
+       <div class="flex-1 overflow-y-auto p-4 scroll-smooth">
+            <ChartForge.Web.Components.Chat.ChatArea />
+       </div>
+       <div class="flex-shrink-0 p-4 bg-white relative">
+           <div class="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+            <ChartForge.Web.Components.Chat.PromptInput />
+            <div class="mt-2 text-center text-xs text-gray-400 font-medium">
+                some kind of message ni radian xdd
+            </div>
+       </div>
+    </section>
+    <section class="hidden lg:flex flex-1 flex-col h-full bg-gray-50/50 relative">
+        <div class="flex-shrink-0 border-b border-gray-200 bg-white">
+            <ChartForge.Web.Components.Canvas.CanvasHeader />
         </div>
-    </div>
-
-    <div class="flex flex-col flex-1 min-w-0 h-full bg-white">
-
-    </div>
-
+        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
+            <ChartForge.Web.Components.Chat.ChatArea />
+        </div>
+    </section>
 </div>
 
-@code {
+<div class="flex flex-col max-w-80">
+    <ChatHeader />
 
-    private User? CurrentUserData { get; set; }
-    private List<Conversation> ConversationsData { get; set; } = new();
+    <MessageBubble />
+</div>
+@code {
+    [Parameter]
+    public int? ConversationId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,8 +1,30 @@
-﻿<div class="flex max-w-full p-4 text-[12px] leading-4 border-[1px] rounded-bl-md rounded-tl-md rounded-tr-md bg-[#fff5f6] border-red-200">
-    <p>
-        Apply our brand palette and add percentage labels above each bar. Also make the chart title more descriptive.
-    </p>
+﻿@* TODO: Make this programatically *@
+@* User chat *@
+<div class="flex w-full justify-end">
+    <div class="max-w-[75%] bg-[#fff5f6] border border-red-200 rounded-xl p-4 text-sm">
+        Generate a bar chart showing monthly customer churn rate for the past 6 months. Pull from the Q3 CRM export.
+    </div>
 </div>
+
+
+@* Ai chat *@
+<div class="flex w-full justify-start">
+    <div class="flex items-start space-x-3 max-w-xl">
+        <div class="w-8 h-8 shrink-0 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">
+            Ai
+        </div>
+
+        <div class="flex flex-col">
+            <span class="text-sm text-gray-500 mb-1">
+                Chart AI
+            </span>
+            <div class="max-w-[75%] border border-gray-200 rounded-xl p-4 text-sm leading-relaxed bg-gray-50">
+            I've generated a bar chart visualising the monthly churn rate from August to January. There's a notable spike in October (4.2%) followed by a downward trend. The chart is now live in the canvas — this is Version 1.
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @code {
 
