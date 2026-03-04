@@ -12,5 +12,4 @@
     <ProjectReference Include="..\ChartForge.Infrastructure\ChartForge.Infrastructure.csproj" />
   </ItemGroup>
 
-
 </Project>

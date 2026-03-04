@@ -1,66 +1,91 @@
 ﻿@implements IDisposable
 @inject ChatStateService ChatState
 @inject NavigationManager Nav
+@rendermode InteractiveServer
 
-<aside class="flex flex-col w-64 min-w-64 h-full bg-white border-r border-gray-100 shrink-0">
+<aside class="flex flex-col h-full bg-white border-r border-gray-100 shrink-0 transition-all duration-300 @(_isCollapsed ? "w-14 min-w-14" : "w-64 min-w-64")">
 
-    @* Header *@
-    <div class="flex items-center justify-between px-4 py-4 shrink-0">
-        <div class="flex items-center gap-2">
-            <div class="w-5 h-5 bg-openit-red rounded-sm shrink-0"></div>
-            <span class="text-sm font-semibold text-gray-900">OpeniT</span>
+    @* Header — hamburger only *@
+    <div class="flex items-center px-3 py-4 shrink-0">
+        <div @onclick="ToggleCollapse"
+             class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5" />
+            </svg>
         </div>
-
-        <button class="text-gray-400 hover:text-gray-600 transition-colors">
-            @* collapse icon *@
-        </button>
     </div>
 
-    @* New Chat + Search Toggle *@
-    @if (_showSearch)
-    {
-        <div class="px-3 pb-3 shrink-0 flex items-center gap-2">
-            <SearchBar OnSearch="HandleSearch" />
-
-            <button @onclick="ToggleSearch"
-                    class="text-xs text-gray-400 hover:text-gray-600 shrink-0">
-                Cancel
-            </button>
+    @* New Chat *@
+    <div class="px-2 pb-2 shrink-0">
+        <div @onclick="HandleNewChat"
+             class="flex items-center gap-3 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors cursor-pointer @(_isCollapsed ? "justify-center" : "")">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z" />
+            </svg>
+            @if (!_isCollapsed)
+            {
+                <span class="text-sm font-medium">New chat</span>
+            }
         </div>
-    }
-    else
-    {
-        <div class="flex flex-col px-3 pb-3 gap-1 shrink-0">
-            <NewChatButton OnClick="HandleNewChat" />
+    </div>
 
-            <button @onclick="ToggleSearch"
-                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors w-full">
-                @* search icon svg *@
-                <span>Search</span>
-            </button>
+    @* Search — always visible *@
+    @if (!_isCollapsed)
+    {
+        <div class="px-3 pb-3 shrink-0">
+            <div class="relative w-full">
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                    </svg>
+                </div>
+                <input @oninput="HandleSearch"
+                       type="text"
+                       placeholder="Search chats..."
+                       class="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 focus:bg-white border border-transparent focus:border-gray-300 rounded-lg outline-none transition-colors text-gray-700 placeholder-gray-400" />
+            </div>
         </div>
     }
 
     @* Conversation List *@
-    <nav class="flex-1 overflow-y-auto px-2 py-1">
-        <ConversationList Conversations="GetActiveConversations()"
-                          ActiveConversationId="ChatState.ActiveConversation?.Id"
-                          SearchQuery="@_searchQuery"
-                          OnSelect="HandleConversationSelected"
-                          OnRename="HandleRename" />
-    </nav>
+    @if (!_isCollapsed)
+    {
+        <nav class="flex-1 overflow-y-auto px-2 py-1">
+            <ConversationList Conversations="GetActiveConversations()"
+                              ActiveConversationId="ChatState.ActiveConversation?.Id"
+                              SearchQuery="@_searchQuery"
+                              OnSelect="HandleConversationSelected"
+                              OnRename="HandleRename" />
+        </nav>
+    }
+    else
+    {
+        <div class="flex-1"></div>
+    }
 
     @* User Footer *@
     <div class="shrink-0 px-2 py-3 border-t border-gray-100">
-        <UserProfileFooter DisplayName="@ChatState.CurrentUser.DisplayName"
-                           Email="@ChatState.CurrentUser.Email" />
+        @if (!_isCollapsed)
+        {
+            <UserProfileFooter DisplayName="@ChatState.CurrentUser.DisplayName"
+                               Email="@ChatState.CurrentUser.Email" />
+        }
+        else
+        {
+            <div class="flex justify-center">
+                <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center cursor-pointer">
+                    <span class="text-xs font-semibold text-white">
+                        @ChatState.CurrentUser.DisplayName.FirstOrDefault()
+                    </span>
+                </div>
+            </div>
+        }
     </div>
 
 </aside>
 
-@code
-{
-    private bool _showSearch = false;
+@code {
+    private bool _isCollapsed = false;
     private string _searchQuery = string.Empty;
 
     protected override void OnInitialized()
@@ -73,45 +98,35 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private void ToggleCollapse() => _isCollapsed = !_isCollapsed;
+
     private List<Conversation> GetActiveConversations() =>
         ChatState.Conversations.Where(c => !c.IsDeleted).ToList();
 
-    private void ToggleSearch()
+    private void HandleSearch(ChangeEventArgs e)
     {
-        _showSearch = !_showSearch;
-
-        if (!_showSearch)
-            _searchQuery = string.Empty;
-    }
-
-    private void HandleSearch(string query)
-    {
-        _searchQuery = query;
+        _searchQuery = e.Value?.ToString() ?? string.Empty;
     }
 
     private void HandleNewChat()
     {
         ChatState.NewConversation();
-        Nav.NavigateTo("/");
+        Nav.NavigateTo("/", replace: true);
     }
 
     private async Task HandleConversationSelected(Conversation conversation)
     {
-        ChatState.LoadConversation(conversation, new(), new());
-        Nav.NavigateTo($"/c/{conversation.Id}");
+        ChatState.LoadConversation(conversation);
+        Nav.NavigateTo($"/c/{conversation.Id}", replace: true);
     }
 
     private async Task HandleRename((int Id, string NewTitle) args)
     {
-        var conversation = ChatState.Conversations
-                                    .FirstOrDefault(c => c.Id == args.Id);
-
+        var conversation = ChatState.Conversations.FirstOrDefault(c => c.Id == args.Id);
         if (conversation is not null)
         {
             conversation.Title = args.NewTitle;
-
-            // later:
-            // await ConversationService.RenameAsync(args.Id, args.NewTitle);
+            // later: await ConversationService.RenameAsync(args.Id, args.NewTitle);
         }
     }
 

@@ -52,7 +52,7 @@ namespace ChartForge.Web.Services
         }
         public Conversation ActiveConversation { get; private set; }
         public List<Message> Messages { get; private set; } = new();
-        public List<ChartState> ChartVersions { get; private set; } = new();
+        public List<ChartState> ChartStates { get; private set; } = new();
         public ChartState? ActiveChartVersion { get; private set; }
         public bool IsStreaming { get; private set; }
         //public string StreamingBuffer { get; private set; } = string.Empty;
@@ -61,7 +61,7 @@ namespace ChartForge.Web.Services
 
         private void Notify() => OnChange?.Invoke();
 
-        public int TotalVersions => ChartVersions.Count;
+        public int TotalVersions => ChartStates.Count;
         public int ActiveVersionNumber => ActiveChartVersion.VersionNumber;
 
         public bool CanGoPrev =>
@@ -72,27 +72,23 @@ namespace ChartForge.Web.Services
 
         // mutations
 
-        public void LoadConversation(
-            Conversation conversation,
-            List<Message> messages,
-            List<ChartState> chartVersions)
+        public void LoadConversation(Conversation conversation)
         {
             ActiveConversation = conversation;
-            Messages = messages;
-            ChartVersions = chartVersions;
+            Messages = conversation.Messages.ToList();
+            ChartStates = conversation.ChartStates.ToList();
 
-            ActiveChartVersion = chartVersions.MaxBy(v => v.VersionNumber);
+            ActiveChartVersion = ChartStates.MaxBy(v => v.VersionNumber);
 
-        IsStreaming = false;
-            //StreamingBuffer = string.Empty;
+            IsStreaming = false;
             Notify();
-            }
+        }
 
         public void NewConversation()
         {
             ActiveConversation = new Conversation();
             Messages = new List<Message>();
-            ChartVersions = new List<ChartState>();
+            ChartStates = new List<ChartState>();
             ActiveChartVersion = null;
             Notify();
         }
@@ -110,7 +106,7 @@ namespace ChartForge.Web.Services
 
             if (newVersion is not null)
             {
-                ChartVersions.Add(newVersion);
+                ChartStates.Add(newVersion);
                 ActiveChartVersion = newVersion;
             }
 

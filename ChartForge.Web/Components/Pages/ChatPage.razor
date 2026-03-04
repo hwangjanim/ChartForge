@@ -1,5 +1,8 @@
 ﻿@page "/"
 @page "/c/{ConversationId:int}"
+@inject ChatStateService ChatState
+@implements IDisposable
+
 @using ChartForge.Web.Components.Canvas
 @inject ChatStateService service;
 
@@ -33,17 +36,24 @@
     [Parameter]
     public int? ConversationId { get; set; }
 
-    private Conversation ActiveConversation => service.ActiveConversation ?? new Conversation();
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (ConversationId.HasValue) {
-            Conversation? conversation = service.Conversations.FirstOrDefault(c => c.Id == ConversationId);
-
-            if (conversation is not null) {
-                service.LoadConversation(conversation, conversation.Messages.ToList(), conversation.ChartStates.ToList());
-            }
-        }
+        ChatState.OnChange += HandleStateChanged;
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // fires when ConversationId changes via URL
+        // later: load real messages here
+    }
+
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ChatState.OnChange -= HandleStateChanged;
+    }
 }

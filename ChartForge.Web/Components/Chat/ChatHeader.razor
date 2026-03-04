@@ -1,18 +1,29 @@
 @using ChartForge.Web.Components.Icons
+@inject ChatStateService ChatState
+@implements IDisposable
+
 <div class="flex justify-start h-10">
-    <div class="flex flex-wrap items-center justify-between w-full max-h-full border-b-1 border-gray-200">
+    <div class="flex flex-wrap items-center justify-between w-full max-h-full border-b border-gray-200">
         <div class="flex items-center text-sm font-semibold px-2">
             <DotIcon />
-            <h2>Title of Chat Here</h2>
-        </div>
-        @* put hover bg here *@
-        <div class="flex items-center cursor-pointer hover:bg-gray-100 rounded-full p-2 pr-8">
-           <RefreshIcon />
+            <h2>@(ChatState.ActiveConversation?.Title is { Length: > 0 } t ? t : "New Chat")</h2>
         </div>
     </div>
 </div>
 
-
 @code {
+    protected override void OnInitialized()
+    {
+        ChatState.OnChange += HandleStateChanged;
+    }
 
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ChatState.OnChange -= HandleStateChanged;
+    }
 }

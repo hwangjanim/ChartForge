@@ -1,54 +1,41 @@
 ﻿@using ChartForge.Web.Components.Icons
-@* TODO: Make this programatically *@
-@* User chat *@
-<div class="@BubbleClass">
-    @if (IsUser()) {
-    <div class="flex flex-col items-end">
-        <div class="max-w-[90%] bg-[#fff5f6] border border-red-200 rounded-xl p-4 text-xs leading-relaxed">
-            @Message.Content
-        </div>
-        <div class="text-[10px] mt-1 text-gray-400">
-            @Message.SentAtUtc
+
+@if (Message.Role == MessageRole.User)
+{
+    <div class="flex w-full justify-end">
+        <div class="flex flex-col items-end">
+            <div class="max-w-[90%] bg-[#fff5f6] border border-red-200 rounded-xl p-4 text-xs leading-relaxed">
+                @Message.Content
+            </div>
+            <div class="text-[10px] mt-1 text-gray-400">
+                @Message.SentAtUtc.ToLocalTime().ToString("h:mmtt")
+            </div>
         </div>
     </div>
-    } else {
-    @* Ai chat *@
-    @* <div class="flex w-full justify-start"> *@
-        <div class="flex flex-col gap-2 items-start space-x-3 max-w-xl">
+}
+else
+{
+    <div class="flex w-full justify-start">
+        <div class="flex flex-col gap-2 items-start max-w-xl">
             <div class="flex gap-2 items-center">
                 <div class="w-6 h-6 shrink-0 rounded-lg bg-red-700 flex items-center justify-center text-white text-xs">
                     <AiIcon />
                 </div>
-
-                <span class="text-xs text-gray-400 mb-1">
-                    Chart AI
-                </span>
+                <span class="text-xs text-gray-400">Chart AI</span>
             </div>
-
             <div class="flex flex-col">
                 <div class="max-w-[90%] border border-gray-200 rounded-xl p-4 text-xs leading-relaxed bg-gray-50">
                     @Message.Content
                 </div>
                 <div class="text-[10px] mt-1 text-gray-400">
-                    @Message.SentAtUtc
+                    @Message.SentAtUtc.ToLocalTime().ToString("h:mmtt")
                 </div>
             </div>
         </div>
-    }
-@* </div> *@
-
-
-</div>
-
+    </div>
+}
 
 @code {
-    [Parameter]
-    public Message Message { get; set; }
-
-
-    private string BubbleClass => IsUser()
-        ? "flex w-full justify-end"
-        : "flex w-full justify-start";
-
-    private bool IsUser() => Message.Role == MessageRole.User;
+    [Parameter, EditorRequired]
+    public Message Message { get; set; } = default!;
 }
