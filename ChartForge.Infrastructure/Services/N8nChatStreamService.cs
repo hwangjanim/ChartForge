@@ -22,9 +22,10 @@ public class N8nChatStreamService : IChatStreamService
         var payload = new
         {
             // insert payload stuff
-            message = chatRequest.UserPrompt,
-            chartCode = chatRequest.CurrentChartCode,
-            history = chatRequest.History
+            chatInput = chatRequest.UserPrompt,
+            currentCode = chatRequest.CurrentChartCode,
+            chatHistory = chatRequest.History,
+            dataSchema = ""
         };
 
         HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "") { Content = JsonContent.Create(payload)};
@@ -53,53 +54,56 @@ public class N8nChatStreamService : IChatStreamService
 
             yield return line;
 
-            string chunk = line;
-            using var doc = JsonDocument.Parse(chunk);
-            var root = doc.RootElement;
+        //     string chunk = line;
+        //     using var doc = JsonDocument.Parse(chunk);
+        //     var root = doc.RootElement;
 
-            if (!root.TryGetProperty("type", out var typeProp))
-                continue;
+        //     if (!root.TryGetProperty("type", out var typeProp))
+        //         continue;
 
-            var type = typeProp.GetString();
+        //     var type = typeProp.GetString();
 
-            if (!root.TryGetProperty("metadata", out var metadata))
-                continue;
+        //     if (!root.TryGetProperty("metadata", out var metadata))
+        //         continue;
 
-            var nodeName = metadata.GetProperty("nodeName").GetString();
-            if (type == "begin" && nodeName is not null)
-            {
-                activeNode = MapNodeName(nodeName);
-            }
+        //     var nodeName = metadata.GetProperty("nodeName").GetString();
+        //     if (type == "begin" && nodeName is not null)
+        //     {
+        //         activeNode = MapNodeName(nodeName);
+        //     } else if (type == "end" && nodeName is not null)
+        //     {
+        //         activeNode = WorkflowNodeType.Unknown;
+        //     }
                 
 
 
-            if (activeNode == WorkflowNodeType.Unknown)
-                continue;
+        //     if (activeNode == WorkflowNodeType.Unknown)
+        //         continue;
 
-            if (type == "item" && root.TryGetProperty("content", out var contentProp))
-            {
-                var contentStr = contentProp.GetString();
-                if (string.IsNullOrEmpty(contentStr))
-                    continue;
+        //     if (type == "item" && root.TryGetProperty("content", out var contentProp))
+        //     {
+        //         var contentStr = contentProp.GetString();
+        //         if (string.IsNullOrEmpty(contentStr))
+        //             continue;
                 
-                if (activeNode == WorkflowNodeType.MainAgent)
-                {
-                    // do something with main agent
-                    if (contentStr.Contains("```"))
-                    {
-                        isInsideCodeBlock = !isInsideCodeBlock;
-                        continue;
-                    }
+        //         if (activeNode == WorkflowNodeType.MainAgent)
+        //         {
+        //             // do something with main agent
+        //             if (contentStr.Contains("```"))
+        //             {
+        //                 isInsideCodeBlock = !isInsideCodeBlock;
+        //                 continue;
+        //             }
 
-                    if (!isInsideCodeBlock)
-                        yield return $"{contentStr}";
-                } 
-                else if (activeNode == WorkflowNodeType.ChartAgent)
-                {
-                    // just print the code from the chart agent
-                    yield return $"{contentStr}";
-                }
-            }
+        //             if (!isInsideCodeBlock)
+        //                 yield return $"{contentStr}";
+        //         } 
+        //         else if (activeNode == WorkflowNodeType.ChartAgent)
+        //         {
+        //             // just print the code from the chart agent
+        //             yield return $"{contentStr}";
+        //         }
+        //     }
         }
 
     }

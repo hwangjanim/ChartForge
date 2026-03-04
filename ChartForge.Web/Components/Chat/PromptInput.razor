@@ -1,17 +1,24 @@
+@using ChartForge.Core.Models
 @using ChartForge.Web.Components.Icons
 
 <div class="flex flex-wrap">
     <SuggestionChips />
 </div>
 
-<div class="flex items-center border-2 text-sm px-4 border-gray-200 bg-gray-50 rounded-lg">
-    <ClipIcon />
-    <input class="px-2 my-2 w-full outline-hidden" placeholder="Describe the chart you want"/>
-    <div class="cursor-pointer">
-        <SendIcon />
+<EditForm Model="@newChat" OnValidSubmit="SendRequest">
+    <div class="flex items-center border-2 text-sm px-4 border-gray-200 bg-gray-50 rounded-lg">
+        <ClipIcon />
+        <input class="px-2 my-2 w-full outline-hidden" placeholder="Describe the chart you want"/>
+        <button type="submit" class="cursor-pointer">
+            <SendIcon />
+        </button>
     </div>
-</div>
+</EditForm>
 
 @code {
+    private MessageContext newChat = new MessageContext { Role = "user" };
+    private async Task SendRequest() {
+
+    }
 
 }

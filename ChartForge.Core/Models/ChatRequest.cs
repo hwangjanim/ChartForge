@@ -6,4 +6,5 @@ public class ChatRequest
     public string UserPrompt { get; set; }
     public string? CurrentChartCode { get; set; }
     public IReadOnlyList<MessageContext> History { get; set; }
+    public string DataSchema { get; set; }
 }
