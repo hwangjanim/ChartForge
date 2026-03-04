@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using ChartForge.Core.Entities;
 
-namespace ChartForge.Core.Interfaces
+public interface IConversationService
 {
-    internal class IConversationService
-    {
-    }
+    Task<List<Conversation>> GetByUserIdAsync(int userId);
+    Task<Conversation> CreateAsync(int userId, string title);
+    Task RenameAsync(int conversationId, string newTitle);
+    Task SoftDeleteAsync(int conversationId);
 }

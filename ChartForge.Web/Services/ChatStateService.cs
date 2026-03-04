@@ -5,6 +5,33 @@ namespace ChartForge.Web.Services
 {
     public class ChatStateService
     {
+        // Mock Data
+        public User CurrentUser { get; private set; } = new User
+        {
+            Id = 1,
+            DisplayName = "Dev User",
+            Email = "dev@chartforge.com",
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+            LastLoginAtUtc = DateTime.UtcNow
+        };
+        public List<Conversation> Conversations { get; private set; } = new();
+        public void LoadMockData()
+        {
+            Conversations = new List<Conversation>
+            {
+                new Conversation { Id = 1, Title = "Monthly Churn Chart", UserId = 1, UpdatedAtUtc = DateTime.UtcNow },
+                new Conversation { Id = 2, Title = "Sales Pipeline Q3", UserId = 1, UpdatedAtUtc = DateTime.UtcNow.Date.AddDays(-1) },
+                new Conversation { Id = 3, Title = "Revenue Breakdown", UserId = 1, UpdatedAtUtc = DateTime.UtcNow.Date.AddDays(-8) },
+            };
+            Notify();
+        }
+
+        // End of Mock Data
+        public ChatStateService()
+        {
+            LoadMockData();
+        }
         public Conversation ActiveConversation { get; private set; }
         public List<Message> Messages { get; private set; } = new();
         public List<ChartState> ChartVersions { get; private set; } = new();
@@ -49,6 +76,7 @@ namespace ChartForge.Web.Services
             Messages = new List<Message>();
             ChartVersions = new List<ChartState>();
             ActiveChartVersion = null;
+            Notify();
         }
 
         public void StartStreaming(Message userMessage)
