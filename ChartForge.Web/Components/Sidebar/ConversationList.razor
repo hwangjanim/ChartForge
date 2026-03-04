@@ -7,11 +7,9 @@ else
     @foreach (var group in GetGroupedConversations())
     {
         <div class="mb-3">
-
             <p class="px-3 mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 @group.Label
             </p>
-
             @foreach (var conversation in group.Conversations)
             {
                 <ConversationItem Conversation="conversation"
@@ -19,13 +17,11 @@ else
                                   OnSelect="OnSelect"
                                   OnRename="OnRename" />
             }
-
         </div>
     }
 }
 
 @code {
-
     [Parameter, EditorRequired]
     public List<Conversation> Conversations { get; set; } = new();
 
@@ -41,9 +37,10 @@ else
     [Parameter]
     public EventCallback<(int Id, string NewTitle)> OnRename { get; set; }
 
-    private IEnumerable<Conversation> FilteredConversations => string.IsNullOrWhiteSpace(SearchQuery)
-        ? Conversations
-        : Conversations.Where(c => c.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<Conversation> FilteredConversations =>
+        string.IsNullOrWhiteSpace(SearchQuery)
+            ? Conversations
+            : Conversations.Where(c => c.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
 
     private record ConversationGroup(string Label, List<Conversation> Conversations);
 
@@ -52,7 +49,7 @@ else
         var now = DateTime.UtcNow;
         var todayStart = now.Date;
         var yesterdayStart = todayStart.AddDays(-1);
-        var thisWeekStart = todayStart.AddDays(-(int)now.DayOfWeek);
+        var thisWeekStart = todayStart.AddDays(-(int)now.DayOfWeek + 1);
         var thisMonthStart = new DateTime(now.Year, now.Month, 1);
 
         var source = FilteredConversations.OrderByDescending(c => c.UpdatedAtUtc).ToList();
@@ -73,5 +70,4 @@ else
 
         return groups;
     }
-
 }

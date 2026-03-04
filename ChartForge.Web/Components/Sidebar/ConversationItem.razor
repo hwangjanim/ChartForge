@@ -1,47 +1,38 @@
 ﻿<div class="group relative w-full">
-
     @if (_isEditing)
     {
         <div class="flex items-center gap-1 px-2 py-1">
             <input @bind="_editTitle"
                    @onkeydown="HandleEditKeyDown"
                    @onblur="CommitEdit"
-                   class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 focus:border-openit-red outline-none text-gray-800"
+                   class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 outline-none text-gray-800"
                    autofocus />
         </div>
     }
     else
     {
         <button @onclick="() => OnSelect.InvokeAsync(Conversation)"
-                class="@GetItemClasses() w-full text-left px-3 py-2 rounded-lg transition-colors duration-150">
-
+                class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50">
             <div class="flex items-center gap-2 min-w-0">
-
                 <span class="text-xs shrink-0 opacity-50">
                     @GetChartIcon()
                 </span>
-
-                <span class="text-sm truncate flex-1 @(IsActive ? "text-gray-900 font-medium" : "text-gray-600")">
+                <span class="text-sm truncate flex-1 text-gray-600">
                     @Conversation.Title
                 </span>
-
-                <button @onclick:stopPropagation="true"
-                        @onclick="StartEditing"
-                        class="opacity-0 group-hover:opacity-100 shrink-0 text-gray-400 hover:text-gray-600 transition-opacity duration-150 p-0.5 rounded">
+                <div @onclick:stopPropagation="true"
+                     @onclick="StartEditing"
+                     class="opacity-0 group-hover:opacity-100 shrink-0 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
                     </svg>
-                </button>
-
+                </div>
             </div>
-
         </button>
     }
-
 </div>
 
 @code {
-
     [Parameter, EditorRequired]
     public Conversation Conversation { get; set; } = default!;
 
@@ -76,10 +67,6 @@
         if (e.Key == "Escape") _isEditing = false;
     }
 
-    private string GetItemClasses() => IsActive
-        ? "bg-gray-100 text-gray-900"
-        : "hover:bg-gray-50 text-gray-600";
-
     private string GetChartIcon() => Conversation.ChartTypeIcon switch
     {
         "bar" => "▊",
@@ -88,5 +75,4 @@
         "scatter" => "⁙",
         _ => "↗"
     };
-
 }
