@@ -20,7 +20,25 @@ namespace ChartForge.Web.Services
         {
             Conversations = new List<Conversation>
             {
-                new Conversation { Id = 1, Title = "Monthly Churn Chart", UserId = 1, UpdatedAtUtc = DateTime.UtcNow },
+                new Conversation { Id = 1, Title = "Monthly Churn Chart", UserId = 1, UpdatedAtUtc = DateTime.UtcNow, Messages = new List<Message>
+    {
+        new Message
+        {
+            Id = 1,
+            Content = "asdasd",
+            Role = MessageRole.User,
+            SentAtUtc = DateTime.UtcNow,
+            SequenceNumber = 1
+        },
+        new Message
+        {
+            Id = 2,
+            Content = "AI response here",
+            Role = MessageRole.Assistant,
+            SentAtUtc = DateTime.UtcNow,
+            SequenceNumber = 2
+        }
+    }},
                 new Conversation { Id = 2, Title = "Sales Pipeline Q3", UserId = 1, UpdatedAtUtc = DateTime.UtcNow.Date.AddDays(-1) },
                 new Conversation { Id = 3, Title = "Revenue Breakdown", UserId = 1, UpdatedAtUtc = DateTime.UtcNow.Date.AddDays(-8) },
             };

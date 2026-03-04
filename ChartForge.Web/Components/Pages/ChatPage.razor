@@ -1,6 +1,7 @@
 ﻿@page "/"
 @page "/c/{ConversationId:int}"
 @using ChartForge.Web.Components.Canvas
+@inject ChatStateService service;
 
 <div class="flex h-full w-full bg-white">
     <section class="flex flex-col w-full lg:w-[30%] xl:w-[25%] h-full border-r border-gray-200 relative">
@@ -8,7 +9,7 @@
            <ChartForge.Web.Components.Chat.ChatHeader />
        </div>
        <div class="flex-1 overflow-y-auto scroll-smooth p-4">
-            <ChartForge.Web.Components.Chat.Chat />
+            <ChartForge.Web.Components.Chat.Chat Messages="ActiveConversation.Messages?.ToList() ?? new List<Message>()" />
        </div>
        <div class="flex-shrink-0 p-4 bg-white relative border-t-1 border-gray-200">
            <div class="absolute -top-6 left-0 right-0 h-6 from-white to-transparent pointer-events-none"></div>
@@ -32,12 +33,17 @@
     [Parameter]
     public int? ConversationId { get; set; }
 
+    private Conversation ActiveConversation => service.ActiveConversation ?? new Conversation();
+
     protected override async Task OnInitializedAsync()
     {
-    }
+        if (ConversationId.HasValue) {
+            Conversation? conversation = service.Conversations.FirstOrDefault(c => c.Id == ConversationId);
 
-    private void HandleNewChat() { }
-    private void HandleConversationSelected(Conversation conversation) { }
-    private void HandleRename((int Id, string NewTitle) args) { }
+            if (conversation is not null) {
+                service.LoadConversation(conversation, conversation.Messages.ToList(), conversation.ChartStates.ToList());
+            }
+        }
+    }
 
 }

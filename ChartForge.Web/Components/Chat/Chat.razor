@@ -1,7 +1,7 @@
 <div class="flex flex-col h-full">
     @* Message thread *@
     <div class="flex-1 p-0">
-        <MessageThread />
+        <MessageThread Messages="Messages" />
     </div>
 
     @* Input Area Here *@
@@ -9,5 +9,5 @@
 </div>
 
 @code {
-
+    [Parameter] public List<Message> Messages { get; set; }
 }

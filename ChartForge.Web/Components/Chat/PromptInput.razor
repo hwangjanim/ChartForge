@@ -1,14 +1,17 @@
 @using ChartForge.Core.Models
 @using ChartForge.Web.Components.Icons
+@inject ChatStateService service;
 
 <div class="flex flex-wrap">
     <SuggestionChips />
 </div>
 
 <EditForm Model="@newChat" OnValidSubmit="SendRequest">
-    <div class="flex items-center border-2 text-sm px-4 border-gray-200 bg-gray-50 rounded-lg">
-        <ClipIcon />
-        <input class="px-2 my-2 w-full outline-hidden" placeholder="Describe the chart you want"/>
+    <div class="flex items-center justify-between border-2 text-sm px-4 border-gray-200 bg-gray-50 rounded-lg">
+        <div class="flex w-full items-center gap-2">
+            <ClipIcon />
+            <InputText @bind-Value="newChat.Content" class="py-2 w-full" placeholder="Describe the chart you want" />
+        </div>
         <button type="submit" class="cursor-pointer">
             <SendIcon />
         </button>
@@ -18,7 +21,29 @@
 @code {
     private MessageContext newChat = new MessageContext { Role = "user" };
     private async Task SendRequest() {
+        @* create new user message *@
+        Message newUserMessage = new Message {
+            Role = MessageRole.User,
+            Content = newChat.Content,
+            SentAtUtc = DateTime.UtcNow,
+            SequenceNumber = service.Messages.Count + 1,
+            ConversationId = service.ActiveConversation.Id,
+            Conversation = service.ActiveConversation,
+        };
 
+        service.Messages.Add(newUserMessage);
+        StateHasChanged();
+
+        @* make the payload *@
+        ChatRequest payload = new ChatRequest {
+            UserPrompt = newChat.Content,
+            CurrentChartCode = service.ActiveChartVersion?.ChartSourceCode,
+            History = service.Messages.Select(m => new MessageContext{
+                Role = m.Role.ToString().ToLower(),
+                Content = m.Content,
+            }).ToList(),
+            DataSchema = ""
+        };
     }
 
 }
