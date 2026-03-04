@@ -112,6 +112,7 @@
     {
         ChatState.NewConversation();
         Nav.NavigateTo("/", replace: true);
+        Console.WriteLine("Created a new convo");
     }
 
     private async Task HandleConversationSelected(Conversation conversation)
@@ -122,12 +123,18 @@
 
     private async Task HandleRename((int Id, string NewTitle) args)
     {
-        var conversation = ChatState.Conversations.FirstOrDefault(c => c.Id == args.Id);
-        if (conversation is not null)
-        {
+        @* var conversation = ChatState.Conversations.FirstOrDefault(c => c.Id == args.Id);
+
+        if (conversation is not null) {
             conversation.Title = args.NewTitle;
+        } *@
+
+            // when editing data, it should be done in the service not in the frontend
+            // the service contains the current data displayed, so manipulate data in the service so that all components
+            // are in sync
+            ChatState.RenameConversation(args.Id, args.NewTitle);
+
             // later: await ConversationService.RenameAsync(args.Id, args.NewTitle);
-        }
     }
 
     public void Dispose()

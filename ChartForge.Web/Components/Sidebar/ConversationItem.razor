@@ -5,6 +5,7 @@
     {
         <div class="flex items-center gap-1 px-2 py-1">
             <input @bind="_editTitle"
+                   @bind:event="oninput"
                    @onkeydown="HandleEditKeyDown"
                    @onblur="CommitEdit"
                    class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 outline-none text-gray-800"

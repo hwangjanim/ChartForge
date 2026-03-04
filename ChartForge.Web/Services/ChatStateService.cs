@@ -48,7 +48,10 @@ namespace ChartForge.Web.Services
         // End of Mock Data
         public ChatStateService()
         {
-            LoadMockData();
+            // remove once in production
+            if (!Conversations.Any())
+                LoadMockData();
+
         }
         public Conversation ActiveConversation { get; private set; }
         public List<Message> Messages { get; private set; } = new();
@@ -127,6 +130,17 @@ namespace ChartForge.Web.Services
         {
             ActiveChartVersion = version;
             Notify();
+        }
+
+        public void RenameConversation(int id, string newTitle)
+        {
+            var conversation = Conversations.FirstOrDefault(c => c.Id == id);
+
+            if (conversation is not null)
+            {
+                conversation.Title = newTitle;
+                Notify();
+            }
         }
         
     }

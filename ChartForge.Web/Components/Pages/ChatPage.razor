@@ -3,6 +3,7 @@
 @inject ChatStateService ChatState
 @implements IDisposable
 
+@using ChartForge.Core.Models
 @using ChartForge.Web.Components.Canvas
 @inject ChatStateService service;
 
@@ -12,11 +13,11 @@
            <ChartForge.Web.Components.Chat.ChatHeader />
        </div>
        <div class="flex-1 overflow-y-auto scroll-smooth p-4">
-            <ChartForge.Web.Components.Chat.Chat Messages="ActiveConversation.Messages?.ToList() ?? new List<Message>()" />
+            <ChartForge.Web.Components.Chat.Chat Messages="ActiveConversation.Messages?.ToList()" />
        </div>
        <div class="flex-shrink-0 p-4 bg-white relative border-t-1 border-gray-200">
            <div class="absolute -top-6 left-0 right-0 h-6 from-white to-transparent pointer-events-none"></div>
-            <ChartForge.Web.Components.Chat.PromptInput />
+            <ChartForge.Web.Components.Chat.PromptInput OnSend="HandleSendMessage" />
             <div class="mt-2 text-center text-[10px] text-gray-400 font-medium">
                 some kind of message ni radian xdd
             </div>
@@ -51,6 +52,38 @@
     private async void HandleStateChanged()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task HandleSendMessage(string userPrompt) {
+         @* create new user message *@
+        Message newUserMessage = new Message {
+            Role = MessageRole.User,
+            Content = userPrompt,
+            SentAtUtc = DateTime.UtcNow,
+            SequenceNumber = service.Messages.Count + 1,
+            ConversationId = service.ActiveConversation.Id,
+            Conversation = service.ActiveConversation
+        };
+
+        service.ActiveConversation.Messages.Add(newUserMessage);
+
+        @* make the payload *@
+        ChatRequest payload = new ChatRequest {
+            UserPrompt = userPrompt,
+            CurrentChartCode = service.ActiveChartVersion?.ChartSourceCode,
+            History = service.Messages.Select(m => new MessageContext{
+                Role = m.Role.ToString().ToLower(),
+                Content = m.Content,
+            }).ToList(),
+            DataSchema = ""
+        };
+
+
+        // send to n8n
+
+        // loop the stream
+
+        // send ai message back
     }
 
     public void Dispose()

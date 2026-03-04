@@ -19,31 +19,13 @@
 </EditForm>
 
 @code {
+    [Parameter] public EventCallback<string> OnSend { get; set; }
     private MessageContext newChat = new MessageContext { Role = "user" };
     private async Task SendRequest() {
-        @* create new user message *@
-        Message newUserMessage = new Message {
-            Role = MessageRole.User,
-            Content = newChat.Content,
-            SentAtUtc = DateTime.UtcNow,
-            SequenceNumber = service.Messages.Count + 1,
-            ConversationId = service.ActiveConversation.Id,
-            Conversation = service.ActiveConversation,
-        };
-
-        service.Messages.Add(newUserMessage);
-        StateHasChanged();
-
-        @* make the payload *@
-        ChatRequest payload = new ChatRequest {
-            UserPrompt = newChat.Content,
-            CurrentChartCode = service.ActiveChartVersion?.ChartSourceCode,
-            History = service.Messages.Select(m => new MessageContext{
-                Role = m.Role.ToString().ToLower(),
-                Content = m.Content,
-            }).ToList(),
-            DataSchema = ""
-        };
+        if (!string.IsNullOrWhiteSpace(newChat.Content)) {
+            await OnSend.InvokeAsync(newChat.Content);
+            newChat.Content = "";
+        }
     }
 
 }
