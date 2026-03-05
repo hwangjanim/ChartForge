@@ -66,76 +66,94 @@ public class N8nChatStreamService : IChatStreamService
 
 
             string chunk = line;
-            // Console.WriteLine("RAW: " + chunk);
+            Console.WriteLine("RAW: " + chunk);
             using var doc = JsonDocument.Parse(chunk);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("type", out var typeProp))
-                continue;
-
-            var type = typeProp.GetString();
-
-            if (!root.TryGetProperty("metadata", out var metadata))
-                continue;
-
-            var nodeName = metadata.GetProperty("nodeName").GetString();
-            if (type == "begin" && nodeName is not null)
+            // since sometimes the n8n sends back a json array
+            // if its an Array, EnumerateArray() lets us loop over each element inside
+            // if its an Object, we still want it to be loopable so we wrap it in a single-element array
+            // if its neither (e.g string, number or null) we skip it
+            IEnumerable<JsonElement> elements = root.ValueKind switch
             {
-                activeNode = MapNodeName(nodeName);
-            } 
-            else if (type == "end" && nodeName is not null)
-            {
-                activeNode = WorkflowNodeType.Unknown;
-            }
-                
+                JsonValueKind.Array => root.EnumerateArray(),
+                JsonValueKind.Object => new[] { root },
 
-
-            if (activeNode == WorkflowNodeType.Unknown)
-                continue;
-
-            if (type == "item" && root.TryGetProperty("content", out var contentProp))
-            {
-                var contentStr = contentProp.GetString();
-                if (string.IsNullOrEmpty(contentStr))
-                    continue;
-                
-                if (activeNode == WorkflowNodeType.MainAgent)
-                {
-                    // do something with main agent
-                    if (contentStr.Contains("```"))
-                    {
-                        isInsideCodeBlock = !isInsideCodeBlock;
-                        continue;
-                    }
-
-                    if (!isInsideCodeBlock)
-                    {
-                        yield return new StreamResult
-                        {
-
-                            AssistantChunk = contentStr
-                        };
-                    }
-                } 
-                else if (activeNode == WorkflowNodeType.ChartAgent)
-                {
-                    // build the code here
-                    chartCodeBuilder.Append(contentStr);
-                }
-            }
-
-        }
-
-        // after end of stream we return the final code that was built
-        if (chartCodeBuilder.Length > 0)
-        {
-            yield return new StreamResult
-            {
-                FinalChartCode = chartCodeBuilder.ToString()
+                // TODO: maybe try to handle receiving neither array or object
+                _ => Enumerable.Empty<JsonElement>()
             };
+
+            foreach (var element in elements)
+            {
+                if (!root.TryGetProperty("type", out var typeProp))
+                    continue;
+
+                var type = typeProp.GetString();
+
+                if (!root.TryGetProperty("metadata", out var metadata))
+                    continue;
+
+                var nodeName = metadata.GetProperty("nodeName").GetString();
+                if (type == "begin" && nodeName is not null)
+                {
+                    activeNode = MapNodeName(nodeName);
+                } 
+                else if (type == "end" && nodeName is not null)
+                {
+                    activeNode = WorkflowNodeType.Unknown;
+                }
+                    
+                if (activeNode == WorkflowNodeType.Unknown)
+                    continue;
+
+                if (type == "item" && root.TryGetProperty("content", out var contentProp))
+                {
+                    var contentStr = contentProp.GetString();
+                    if (string.IsNullOrEmpty(contentStr))
+                        continue;
+                    
+                    if (activeNode == WorkflowNodeType.MainAgent)
+                    {
+                        // do something with main agent
+                        if (contentStr.Contains("```"))
+                        {
+                            isInsideCodeBlock = !isInsideCodeBlock;
+                            continue;
+                        }
+
+                        if (!isInsideCodeBlock)
+                        {
+                            yield return new StreamResult
+                            {
+
+                                AssistantChunk = contentStr
+                            };
+                        }
+                    } 
+                    else if (activeNode == WorkflowNodeType.ChartAgent)
+                    {
+                        // build the code here
+                        chartCodeBuilder.Append(contentStr);
+                    }
+                }
+
+            }
+
+
         }
+            // after end of stream we return the final code that was built
+            if (chartCodeBuilder.Length > 0)
+            {
+                yield return new StreamResult
+                {
+                    FinalChartCode = chartCodeBuilder.ToString()
+                };
+            }
+
+
 
     }
+
 
 
     private WorkflowNodeType MapNodeName(string nodeName)
