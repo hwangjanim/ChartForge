@@ -32,21 +32,28 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && ChatState.ChartStates.Count > 0)
+        if (chartModule == null && ChatState.ChartStates.Count > 0)
         {
-            chartModule = await JS.InvokeAsync<IJSObjectReference>("import", "./wwwroot/js/chartInterop.js");
+            try 
+            {
+                chartModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chartInterop.js");
+                Console.WriteLine("[CanvasArea] JS Module loaded successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[CanvasArea] Error loading JS Module: {ex.Message}");
+            }
         }
 
         var activeVersion = ChatState.ActiveChartVersion;
 
-        Console.WriteLine($"[CanvasArea] OnAfterRenderAsync firstRender={firstRender}, activeVersion={activeVersion?.VersionNumber}, lastRendered={lastRenderedVersionNumber}, moduleLoaded={chartModule is not null}, hasCode={!string.IsNullOrWhiteSpace(activeVersion?.ChartSourceCode)}");
         if(activeVersion is not null
            && activeVersion.VersionNumber != lastRenderedVersionNumber
            && chartModule is not null
            && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
         {
             lastRenderedVersionNumber = activeVersion.VersionNumber;
-            Console.WriteLine($"SOURCE: {activeVersion.ChartSourceCode}");
+            @* Console.WriteLine($"[CanvasArea] Rendering version {activeVersion.VersionNumber}"); *@
             var result = await chartModule.InvokeAsync<string>("renderChart", activeVersion.ChartSourceCode);
             if (result != "Success")
             {
@@ -55,23 +62,26 @@
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         ChatState.OnChange -= HandleStateChanged;
+        if (chartModule is not null)
+        {
+            try
+            {
+                await chartModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore
+            }
+        }
     }
 
-    // async ValueTask IAsyncDisposable.DisposeAsync()
-    // {
-    //     if (module is not null)
-    //     {
-    //         try
-    //         {
-    //             await module.DisposeAsync();
-    //         }
-    //         catch (JSDisconnectedException)
-    //         {
-
-    //         }
-    //     }
-    // }
+    void IDisposable.Dispose()
+    {
+         // Keep this for sync disposal of event handler if needed, 
+         // but IAsyncDisposable is preferred for Blazor components with JS interop.
+         ChatState.OnChange -= HandleStateChanged;
+    }
 }
