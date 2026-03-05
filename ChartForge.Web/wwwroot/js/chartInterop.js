@@ -65,9 +65,9 @@
         if (canvasContainer) canvasContainer.style.display = 'block';
     }
 
-    // --- 3. Prepare Code ---
-    // Regex to extract code between markdown blocks
-    const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i;
+     // --- 3. Prepare Code ---
+     // Regex to extract code between markdown blocks
+     const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i;
     const match = code.match(codeBlockRegex);
 
     if (match && match[1]) {

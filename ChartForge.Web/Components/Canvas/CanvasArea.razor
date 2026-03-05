@@ -1,9 +1,11 @@
-﻿
-@* chart display, export, etc. *@
-@if (ActiveConversation.ChartStates.Count > 0) {
-     <div class="card-body">
-            <div id="container" class="chart-container"></div>
-            <div id="chartCanvasContainer" class="chart-container" style="position: relative; display:none;">
+﻿@inject ChatStateService ChatState
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (ChatState.ChartStates.Count > 0) {
+     <div class="card-body w-full h-full">
+            <div id="container" class="chart-container w-full h-full"></div>
+        <div id="chartCanvasContainer" class="chart-container w-full h-full" style="position: relative; display:none;">
             <canvas id="chartCanvas"></canvas>
         </div>
     </div>
@@ -15,4 +17,61 @@
     [Parameter]
     public Conversation ActiveConversation { get; set; }
 
+    private IJSObjectReference? chartModule;
+    private int lastRenderedVersionNumber = -1;
+
+    protected override void OnInitialized()
+    {
+        ChatState.OnChange += HandleStateChanged;
+    }
+
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && ChatState.ChartStates.Count > 0)
+        {
+            chartModule = await JS.InvokeAsync<IJSObjectReference>("import", "./wwwroot/js/chartInterop.js");
+        }
+
+        var activeVersion = ChatState.ActiveChartVersion;
+
+        Console.WriteLine($"[CanvasArea] OnAfterRenderAsync firstRender={firstRender}, activeVersion={activeVersion?.VersionNumber}, lastRendered={lastRenderedVersionNumber}, moduleLoaded={chartModule is not null}, hasCode={!string.IsNullOrWhiteSpace(activeVersion?.ChartSourceCode)}");
+        if(activeVersion is not null
+           && activeVersion.VersionNumber != lastRenderedVersionNumber
+           && chartModule is not null
+           && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
+        {
+            lastRenderedVersionNumber = activeVersion.VersionNumber;
+            Console.WriteLine($"SOURCE: {activeVersion.ChartSourceCode}");
+            var result = await chartModule.InvokeAsync<string>("renderChart", activeVersion.ChartSourceCode);
+            if (result != "Success")
+            {
+                Console.Error.WriteLine($"Error rendering chart: {result}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        ChatState.OnChange -= HandleStateChanged;
+    }
+
+    // async ValueTask IAsyncDisposable.DisposeAsync()
+    // {
+    //     if (module is not null)
+    //     {
+    //         try
+    //         {
+    //             await module.DisposeAsync();
+    //         }
+    //         catch (JSDisconnectedException)
+    //         {
+
+    //         }
+    //     }
+    // }
 }

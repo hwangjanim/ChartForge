@@ -1,4 +1,7 @@
 ﻿@using ChartForge.Web.Components.Icons
+@inject ChatStateService ChatState
+@implements IDisposable
+
 <!-- CanvasHeader.razor -->
 <div class="flex items-center justify-between p-4 bg-white border-b border-gray-200 w-full">
     <!-- Left side: Chart title and subtitle -->
@@ -11,11 +14,21 @@
     <!-- Right side: buttons -->
     <div class="flex items-center gap-2">
         <!-- Version navigation -->
-        <div class="flex items-center border rounded-lg overflow-hidden text-sm font-medium text-gray-300">
-            <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition">&lt; Prev</button>
-            <span class="px-3 py-1 text-[12px] text-gray-700 bg-gray-100 border-x border-gray-300">Version 2 of 5</span>
-            <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition">Next &gt;</button>
-        </div>
+        @if (ChatState.TotalVersions > 0)
+        {
+            <div class="flex items-center border rounded-lg overflow-hidden text-sm font-medium text-gray-300">
+                <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabeld:cursor-not-allowed"
+                    disabled="@(!ChatState.CanGoPrev)"
+                        @onclick="GoPrev">&lt; Prev
+                 </button>
+                 <VersionLabel CurrentVersion="@(ChatState.ActiveChartVersion?.VersionNumber ?? 0)" TotalVersions="@ChatState.TotalVersions" />
+                <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabeld:cursor-not-allowed"
+                        disabled="@(!ChatState.CanGoNext)"
+                        @onclick="GoNext">Next &gt;
+                        
+                </button>
+            </div>
+        }
 
 
         @* share button and fullscreen button(?)  *@
@@ -30,5 +43,31 @@
 </div>
 
 @code {
+    protected override void OnInitialized()
+    {
+        ChatState.OnChange += HandleStateChanged;
+    }
 
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+    private void GoPrev()
+    {
+        if (!ChatState.CanGoPrev) return;
+        var prev = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveChartVersion!.VersionNumber - 1);
+        if (prev is not null) ChatState.SetActiveVersion(prev);
+    }
+
+    private void GoNext()
+    {
+        if (!ChatState.CanGoNext) return;
+        var next = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveChartVersion!.VersionNumber + 1);
+        if (next is not null) ChatState.SetActiveVersion(next);
+    }
+
+    public void Dispose()
+    {
+        ChatState.OnChange -= HandleStateChanged;
+    }
 }

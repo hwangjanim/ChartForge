@@ -1,5 +1,13 @@
-﻿<h3>VersionLabel</h3>
+﻿<span class="px-3 py-1 text-[12px] text-gray-700 bg-gray-100 border-x border-gray-300">
+    
+   @if (TotalVersions > 0)
+    {
+    <text>Version @CurrentVersion of @TotalVersions </text>
+    }
+
+</span>
 
 @code {
-
+    [Parameter] public int CurrentVersion { get; set; }
+    [Parameter] public int TotalVersions { get; set; }
 }

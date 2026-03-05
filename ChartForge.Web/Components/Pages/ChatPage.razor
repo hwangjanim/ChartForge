@@ -121,22 +121,50 @@
                 if (codeStartIndex == -1) codeStartIndex = fullCode.IndexOf("```js");
                 if (codeStartIndex == -1) codeStartIndex = fullCode.IndexOf("```");
 
-                int startOfActualCode = fullCode.IndexOf('\n', codeStartIndex);
-                if (startOfActualCode == -1) startOfActualCode = codeStartIndex + 3; // Fallback if no newline
-                else startOfActualCode += 1; // skip the newline itself
+                if (codeStartIndex != -1)
+                {
+                    int startOfActualCode = fullCode.IndexOf('\n', codeStartIndex);
+                    if (startOfActualCode == -1) startOfActualCode = codeStartIndex + 3; // Fallback if no newline
+                    else startOfActualCode += 1; // skip the newline itself
 
-                int codeEndIndex = fullCode.IndexOf("```", startOfActualCode);
+                    int codeEndIndex = fullCode.IndexOf("```", startOfActualCode);
 
-                if (codeEndIndex == -1) {
-                    // TODO: do something if theres no ending backticks
-                } else {
-                    fullCode = fullCode.Substring(startOfActualCode, codeEndIndex - startOfActualCode).Trim();
+                    if (codeEndIndex == -1) {
+                        // TODO: do something if theres no ending backticks
+                    } else {
+                        fullCode = fullCode.Substring(startOfActualCode, codeEndIndex - startOfActualCode).Trim();
+                    }
                 }
+
+                var newVersion = new ChartState
+                {
+                    VersionNumber = conversation.ChartStates.Count + 1,
+                    ChartSourceCode = fullCode,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    ConversationId = conversation.Id,
+                    VersionLabel = $"Version {conversation.ChartStates.Count + 1}"
+                };
+                ChatState.CompleteStreaming(newVersion);
+
                 // just display the code for now (testing)
                 @* Console.WriteLine(fullCode); *@
 
                 @* put here the invoke javascript thing *@
                 @* pass 'fullCode' to the function *@
+
+                // var activeVersion = ChatState.ActiveChartVersion;
+                // if (activeVersion is not null
+                //    && activeVersion.VersionNumber != lastRenderedVersionNumber
+                //    && chartModule is not null
+                //    && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
+                // {
+                //     lastRenderedVersionNumber = activeVersion.VersionNumber;
+                //     var result = await chartModule.InvokeAsync<string>("renderChart", activeVersion.ChartSourceCode);
+                //     if (result == "Success")
+                //     {
+                //         Console.Error.WriteLine($"Error rendering chart: {result}");
+                //     }
+                // }
 
             }
 
@@ -148,7 +176,7 @@
            
         }
 
-        // get the code from the stream
+        StateHasChanged();
 
     }
 
