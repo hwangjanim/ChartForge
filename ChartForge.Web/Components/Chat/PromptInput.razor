@@ -104,8 +104,6 @@
 
     private async Task SendRequest()
     {
-        Console.WriteLine($"Msg: {_newChat.Content}");
-
         if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
         {
             string userPrompt = _newChat.Content;
@@ -117,10 +115,8 @@
 
     private async void HandleKeyDown(KeyboardEventArgs e)
     {
-        Console.WriteLine(e.Key);
         if (e.Key == "Enter" && !e.ShiftKey)
         {
-            Console.WriteLine(e.Key);
             await SendRequest();
         }
     }
