@@ -36,13 +36,14 @@
     </div>
 }
 
-<EditForm Model="@_newChat" OnValidSubmit="SendRequest">
     <div class="flex flex-col border-2 border-gray-200 bg-gray-50 focus-within:border-gray-300 focus-within:bg-white rounded-xl transition-colors">
 
         @* Text input row *@
         <div class="flex items-center gap-2 px-3 py-2">
-            <InputText @bind-Value="_newChat.Content"
-                       @onkeydown="HandleKeyDown"
+            <input value="@_newChat.Content"
+            @oninput="e => _newChat.Content = e.Value?.ToString() ?? string.Empty"
+            type="text"
+                       @onkeypress="@HandleKeyDown"
                        class="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 text-gray-800 resize-none"
                        placeholder="Describe the chart you want..." />
         </div>
@@ -78,14 +79,14 @@
             </div>
 
             @* Send button *@
-            <button type="submit"
-                    disabled="@((string.IsNullOrWhiteSpace(_newChat.Content) && !_attachments.Any()) || IsStreaming)"
+            <button type="button"
+                    @onclick="SendRequest"
+                    disabled="@IsStreaming"
                     class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors">
                 <SendIcon />
             </button>
         </div>
     </div>
-</EditForm>
 
 @* Hidden file inputs *@
 <InputFile id="fileInput" OnChange="OnFilesSelected" multiple class="hidden" />
@@ -103,6 +104,8 @@
 
     private async Task SendRequest()
     {
+        Console.WriteLine($"Msg: {_newChat.Content}");
+
         if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
         {
             string userPrompt = _newChat.Content;
@@ -112,10 +115,12 @@
         }
     }
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+    private async void HandleKeyDown(KeyboardEventArgs e)
     {
+        Console.WriteLine(e.Key);
         if (e.Key == "Enter" && !e.ShiftKey)
         {
+            Console.WriteLine(e.Key);
             await SendRequest();
         }
     }

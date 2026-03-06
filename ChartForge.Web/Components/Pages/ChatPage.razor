@@ -48,6 +48,13 @@
         ChatState.OnChange += HandleStateChanged;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chartInterop.js");
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (ConversationId.HasValue)
@@ -188,7 +195,7 @@
                     await ScrollToBottom();
                 }
             }
-            if(ChatState.IsStreaming)
+            if (ChatState.IsStreaming)
             {
                 ChatState.CompleteStreaming(newVersion: null);
             }
@@ -196,6 +203,7 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine(value: $"Streaming error: {ex.Message}");
+            newAiMessage.Content = $"Error: {ex.Message}";
             ChatState.FailStreaming();
         }
         // loop the stream
