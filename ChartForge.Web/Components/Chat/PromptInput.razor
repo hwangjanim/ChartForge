@@ -101,27 +101,37 @@
 
     private record AttachmentPreview(string Name, bool IsImage, IBrowserFile File);
 
-    private bool _isSubmitting = false;
+    //private bool _isSubmitting = false;
 
-    private async Task SendRequest()
-    {
-        if (_isSubmitting) return;
+    //private async Task SendRequest()
+    //{
+    //    if (_isSubmitting) return;
 
-        if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
-        {
-            _isSubmitting = true;
-            try
-            {
-                string userPrompt = _newChat.Content;
-                _newChat.Content = "";
-                await OnSend.InvokeAsync(userPrompt);
-                _attachments.Clear();
-            }
-            finally
-            {
-                _isSubmitting = false;
-            }
-        }
+    //    if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
+    //    {
+    //        _isSubmitting = true;
+    //        try
+    //       {
+    //           string userPrompt = _newChat.Content;
+    //            _newChat.Content = "";
+    //            await OnSend.InvokeAsync(userPrompt);
+    //            _attachments.Clear();
+    //        }
+    //        finally
+    //        {
+    //            _isSubmitting = false;
+    //        }
+    //    }
+    //}
+    
+    private async Task SendRequest() {
+     if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
+     {
+        string userPrompt = _newChat.Content;
+        _newChat.Content = "";
+        await OnSend.InvokeAsync(userPrompt);
+        _attachments.Clear();
+     }   
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
