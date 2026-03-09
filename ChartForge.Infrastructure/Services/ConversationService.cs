@@ -100,6 +100,9 @@ public class ConversationService : IConversationService
     public async Task AddMessageAsync(Message message)
     {
         await using var db = await _contextFactory.CreateDbContextAsync();
+        // Detach navigation properties so EF doesn't try to re-insert the parent entities.
+        message.Conversation = null!;
+        message.ChartState = null;
         db.Messages.Add(message);
         await db.SaveChangesAsync();
     }
@@ -107,6 +110,9 @@ public class ConversationService : IConversationService
     public async Task AddChartStateAsync(ChartState chartState)
     {
         await using var db = await _contextFactory.CreateDbContextAsync();
+        // Detach navigation properties so EF doesn't try to re-insert the parent entities.
+        chartState.Conversation = null!;
+        chartState.Message = null!;
         db.ChartStates.Add(chartState);
         await db.SaveChangesAsync();
     }

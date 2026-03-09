@@ -8,8 +8,8 @@ public class ChartState
     public int VersionNumber { get; set; }
     public ChartLibrary ChartLibrary { get; set; }
     public string ChartSourceCode { get; set; } = string.Empty;
-    public string SummaryMetricsJson {  get; set; }
-    public string SuggestedActionsJson { get; set; }
+    // public string SummaryMetricsJson {  get; set; }
+    // public string SuggestedActionsJson { get; set; }
     public string VersionLabel { get; set; }
     public DateTime CreatedAtUtc { get; set; } 
 
