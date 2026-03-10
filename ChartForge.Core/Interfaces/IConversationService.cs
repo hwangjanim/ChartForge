@@ -1,5 +1,7 @@
 using ChartForge.Core.Entities;
 
+namespace ChartForge.Core.Interfaces;
+
 public interface IConversationService
 {
     // User

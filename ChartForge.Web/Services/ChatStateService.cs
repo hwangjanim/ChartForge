@@ -1,5 +1,6 @@
 using ChartForge.Core.Entities;
 using ChartForge.Core.Enums;
+using ChartForge.Core.Interfaces;
 
 namespace ChartForge.Web.Services;
 
@@ -42,7 +43,7 @@ public class ChatStateService
     // ── Active state ──────────────────────────────────────────────────────────
 
     public Conversation ActiveConversation { get; private set; } = new Conversation();
-    public bool IsNewUnsavedConversation { get; private set; }
+    public bool IsNewUnsavedConversation { get; private set; } = true;
     public List<Message> Messages { get; private set; } = new();
     public List<ChartState> ChartStates { get; private set; } = new();
     public ChartState? ActiveChartVersion { get; private set; }
@@ -74,6 +75,7 @@ public class ChatStateService
         ChartStates = full.ChartStates.ToList();
         ActiveChartVersion = ChartStates.MaxBy(v => v.VersionNumber);
         IsStreaming = false;
+        IsNewUnsavedConversation = false;
         _pendingMessages.Clear();
         Notify();
     }

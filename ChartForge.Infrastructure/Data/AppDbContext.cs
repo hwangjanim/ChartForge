@@ -39,15 +39,5 @@ public class AppDbContext : DbContext
             .HasForeignKey(cs => cs.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Message <-> ChartState (1:1, FK on Message side)
-        modelBuilder.Entity<Message>()
-            .HasOne(m => m.ChartState)
-            .WithOne(cs => cs.Message)
-            .HasForeignKey<Message>(m => m.ChartStateId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-
-        modelBuilder.Entity<ChartState>()
-            .Property(cs => cs.MessageId);
     }
 }

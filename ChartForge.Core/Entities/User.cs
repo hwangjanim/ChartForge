@@ -6,7 +6,6 @@ public class User
     public string SsoSubjectId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string? AvatarUrl { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime LastLoginAtUtc { get; set; }
     public bool IsActive { get; set; } = true;

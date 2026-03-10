@@ -157,7 +157,6 @@
                         ChartSourceCode = fullCode,
                         CreatedAtUtc = DateTime.UtcNow,
                         ConversationId = conversation.Id,
-                        VersionLabel = $"Version {conversation.ChartStates.Count + 1}"
                     };
                     await ChatState.CompleteStreamingAsync(newVersion);
                 }

@@ -17,9 +17,7 @@
         <button @onclick="() => OnSelect.InvokeAsync(Conversation)"
                 class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50">
             <div class="flex items-center gap-2 min-w-0">
-                <span class="text-xs shrink-0 opacity-50">
-                    @GetChartIcon()
-                </span>
+                <span class="text-xs shrink-0 opacity-50">↗</span>
                 <span class="text-sm truncate flex-1 text-gray-600">
                     @Conversation.Title
                 </span>
@@ -70,12 +68,4 @@
         if (e.Key == "Escape") _isEditing = false;
     }
 
-    private string GetChartIcon() => Conversation.ChartTypeIcon switch
-    {
-        "bar" => "▊",
-        "line" => "↗",
-        "pie" => "◕",
-        "scatter" => "⁙",
-        _ => "↗"
-    };
 }
