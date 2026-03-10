@@ -91,7 +91,12 @@
 
         Conversation? conversation = ActiveConversation;
 
-         @* create new user message *@
+        // Capture BEFORE AddConversationToListAsync flips it to false.
+        // Used to gate auto-title: we only rename on the very first message.
+        bool isFirstMessage = ChatState.IsNewUnsavedConversation;
+        bool titleUpdated = false;
+
+        @* create new user message *@
         Message newUserMessage = new Message {
             Role = MessageRole.User,
             Content = userPrompt,
@@ -112,11 +117,9 @@
 
         ChatState.StartStreaming(newUserMessage);
         ChatState.StartStreaming(newAiMessage);
-        @* conversation.Messages.Add(newUserMessage);
-        conversation.Messages.Add(newAiMessage); *@
         await ScrollToBottom();
 
-        if (ChatState.IsNewUnsavedConversation)
+        if (isFirstMessage)
         {
             await ChatState.AddConversationToListAsync(userPrompt);
         }
@@ -140,9 +143,16 @@
             {
                 batchCount++;
 
+                // Early title update from the streaming layer (best-effort).
+                // Only applied on the first message and only once.
+                if (chunk.ConversationTitle is not null && isFirstMessage && !titleUpdated)
+                {
+                    await ChatState.RenameConversationAsync(ActiveConversation.Id, chunk.ConversationTitle);
+                    titleUpdated = true;
+                }
+
                 if (chunk.AssistantChunk is not null)
                 {
-                    // TODO: maybe change this to string builder in the future to optimize memory
                     aiMsg.Append(chunk.AssistantChunk);
                     newAiMessage.Content = aiMsg.ToString();
                 }
@@ -168,6 +178,23 @@
                     await ScrollToBottom();
                 }
             }
+
+            // Post-processing: strip the <THOUGHT> block and extract the title from the
+            // full assembled content. This is the guaranteed safety net — the streaming-layer
+            // filter handles real-time UX, but the model may not always follow the format
+            // strictly (e.g. text before <THOUGHT>), so we clean up here regardless.
+            if (aiMsg.Length > 0)
+            {
+                var (cleanContent, extractedTitle) = ThoughtBlockParser.Parse(aiMsg.ToString());
+                newAiMessage.Content = cleanContent;
+
+                if (isFirstMessage && !titleUpdated && !string.IsNullOrWhiteSpace(extractedTitle))
+                {
+                    await ChatState.RenameConversationAsync(ActiveConversation.Id, extractedTitle);
+                    titleUpdated = true;
+                }
+            }
+
             if (ChatState.IsStreaming)
             {
                 await ChatState.CompleteStreamingAsync(newVersion: null);
@@ -179,8 +206,7 @@
             newAiMessage.Content = $"Error: {ex.Message}";
             ChatState.FailStreaming();
         }
-        // loop the stream
-        
+
         StateHasChanged();
     }
 

@@ -13,4 +13,5 @@ public class StreamResult
 {
     public string? AssistantChunk { get; set; }
     public string? FinalChartCode { get; set; }
+    public string? ConversationTitle { get; set; }
 }
