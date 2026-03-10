@@ -13,4 +13,5 @@ public class Conversation
     public User User { get; set; }
     public ICollection<Message> Messages { get; set; } = new List<Message>();
     public ICollection<ChartState> ChartStates { get; set; } = new List<ChartState>();
+    public ICollection<DataState> DataStates { get; set; } = new List<DataState>();
 }

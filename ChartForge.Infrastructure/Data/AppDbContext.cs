@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
     public DbSet<ChartState> ChartStates { get; set; }
+    public DbSet<DataState> DataStates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,13 @@ public class AppDbContext : DbContext
             .HasOne(cs => cs.Conversation)
             .WithMany(c => c.ChartStates)
             .HasForeignKey(cs => cs.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Conversation -> DataStates (1:many)
+        modelBuilder.Entity<DataState>()
+            .HasOne(ds => ds.Conversation)
+            .WithMany(c => c.DataStates)
+            .HasForeignKey(ds => ds.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
     }
