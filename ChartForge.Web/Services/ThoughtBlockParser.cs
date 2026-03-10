@@ -10,15 +10,18 @@ public static class ThoughtBlockParser
     private static readonly Regex TitleRegex =
         new(@"<TITLE>(.*?)</TITLE>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
-    /// <summary>
-    /// Strips the &lt;THOUGHT&gt;...&lt;/THOUGHT&gt; block from raw AI content and
-    /// extracts the optional &lt;TITLE&gt; contained within it.
-    /// Returns the cleaned content and the title (null if not present).
-    /// </summary>
-    public static (string CleanContent, string? Title) Parse(string raw)
-    {
-        var thoughtMatch = ThoughtBlockRegex.Match(raw);
+    private static readonly Regex DataBlockRegex =
+        new(@"<DATA>(.*?)</DATA>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
+    /// <summary>
+    /// Strips &lt;THOUGHT&gt; and &lt;DATA&gt; blocks from raw AI content, extracting
+    /// the optional &lt;TITLE&gt; from within the thought block and the CSV from the data block.
+    /// Acts as a post-processing safety net after streaming-layer filtering.
+    /// </summary>
+    public static (string CleanContent, string? Title, string? Data) Parse(string raw)
+    {
+        // Extract <TITLE> from inside the <THOUGHT> block.
+        var thoughtMatch = ThoughtBlockRegex.Match(raw);
         string? title = null;
         if (thoughtMatch.Success)
         {
@@ -27,7 +30,18 @@ public static class ThoughtBlockParser
                 title = titleMatch.Groups[1].Value.Trim();
         }
 
+        // Strip the <THOUGHT> block.
         var cleaned = ThoughtBlockRegex.Replace(raw, "").Trim();
-        return (cleaned, title);
+
+        // Extract and strip the <DATA> block.
+        var dataMatch = DataBlockRegex.Match(cleaned);
+        string? data = null;
+        if (dataMatch.Success)
+        {
+            data = dataMatch.Groups[1].Value.Trim();
+            cleaned = DataBlockRegex.Replace(cleaned, "").Trim();
+        }
+
+        return (cleaned, title, data);
     }
 }

@@ -7,7 +7,6 @@ public class DataState
     public string RawData { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
 
-    // --- Navigation Properties ---
     public int? ConversationId { get; set; }
     public Conversation Conversation { get; set; }
 }

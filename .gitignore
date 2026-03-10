@@ -365,3 +365,7 @@ FodyWeavers.xsd
 # tailwind
 ChartForge.Web/tailwind.exe
 ChartForge.Web/wwwroot/app.css
+
+# Seed / test data — may contain real usage data; keep off remote
+102heatmaps.csv
+102summary.csv

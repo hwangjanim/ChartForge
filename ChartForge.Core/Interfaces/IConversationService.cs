@@ -15,7 +15,8 @@ public interface IConversationService
     Task SoftDeleteAsync(int conversationId);
     Task UpdateTimestampAsync(int conversationId);
 
-    // Messages & ChartStates
+    // Messages, ChartStates & DataStates
     Task AddMessageAsync(Message message);
     Task AddChartStateAsync(ChartState chartState);
+    Task AddDataStateAsync(DataState dataState);
 }

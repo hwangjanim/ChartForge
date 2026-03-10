@@ -19,4 +19,10 @@
     <ProjectReference Include="..\ChartForge.Infrastructure\ChartForge.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Seed / test data files. Copied to the output directory so the app can read them at runtime. -->
+  <ItemGroup>
+    <Content Include="..\102heatmaps.csv" Link="SeedData\102heatmaps.csv" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\102summary.csv"  Link="SeedData\102summary.csv"  CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

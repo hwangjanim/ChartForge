@@ -88,6 +88,7 @@
         int batchCount = 0;
 
         string fullCode = "";
+        string fullData = "";
 
         Conversation? conversation = ActiveConversation;
 
@@ -128,6 +129,9 @@
         ChatRequest request = new ChatRequest {
             UserPrompt = userPrompt,
             CurrentChartCode = ChatState.ActiveChartVersion?.ChartSourceCode,
+            CurrentData = ChatState.ActiveDataVersion is not null
+                ? $"CURRENT DATA SCHEMA (Showing headers and first 3 rows only):\n{DataSummaryService.GetCsvSummary(ChatState.ActiveDataVersion.RawData)}"
+                : null,
             History = conversation.Messages.Select(m => new MessageContext{
                 Role = m.Role.ToString().ToLower(),
                 Content = m.Content,
@@ -171,6 +175,20 @@
                     await ChatState.CompleteStreamingAsync(newVersion);
                 }
 
+                if (chunk.FinalData is not null)
+                {
+                    fullData = chunk.FinalData;
+
+                    var newDataVersion = new DataState
+                    {
+                        VersionNumber = conversation.DataStates.Count + 1,
+                        RawData = fullData,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        ConversationId = conversation.Id,
+                    };
+                    await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
+                }
+
                 if (batchCount >= batchSize)
                 {
                     batchCount = 0;
@@ -185,13 +203,26 @@
             // strictly (e.g. text before <THOUGHT>), so we clean up here regardless.
             if (aiMsg.Length > 0)
             {
-                var (cleanContent, extractedTitle) = ThoughtBlockParser.Parse(aiMsg.ToString());
+                var (cleanContent, extractedTitle, extractedData) = ThoughtBlockParser.Parse(aiMsg.ToString());
                 newAiMessage.Content = cleanContent;
 
                 if (isFirstMessage && !titleUpdated && !string.IsNullOrWhiteSpace(extractedTitle))
                 {
                     await ChatState.RenameConversationAsync(ActiveConversation.Id, extractedTitle);
                     titleUpdated = true;
+                }
+
+                // Safety net: if the streaming layer missed a <DATA> block, persist it now.
+                if (!string.IsNullOrWhiteSpace(extractedData) && string.IsNullOrEmpty(fullData))
+                {
+                    var newDataVersion = new DataState
+                    {
+                        VersionNumber = conversation.DataStates.Count + 1,
+                        RawData = extractedData,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        ConversationId = conversation.Id,
+                    };
+                    await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
                 }
             }
 

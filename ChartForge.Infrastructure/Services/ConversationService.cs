@@ -52,6 +52,7 @@ public class ConversationService : IConversationService
         return await db.Conversations
             .Include(c => c.Messages.OrderBy(m => m.SequenceNumber))
             .Include(c => c.ChartStates.OrderBy(cs => cs.VersionNumber))
+            .Include(c => c.DataStates.OrderBy(ds => ds.VersionNumber))
             .FirstOrDefaultAsync(c => c.Id == conversationId);
     }
 
@@ -113,6 +114,14 @@ public class ConversationService : IConversationService
         // Detach navigation properties so EF doesn't try to re-insert the parent entities.
         chartState.Conversation = null!;
         db.ChartStates.Add(chartState);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddDataStateAsync(DataState dataState)
+    {
+        await using var db = await _contextFactory.CreateDbContextAsync();
+        dataState.Conversation = null!;
+        db.DataStates.Add(dataState);
         await db.SaveChangesAsync();
     }
 }

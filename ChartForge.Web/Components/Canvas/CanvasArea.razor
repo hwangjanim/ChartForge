@@ -1,15 +1,36 @@
-﻿@inject ChatStateService ChatState
+@using ChartForge.Web.Services
+@inject ChatStateService ChatState
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div class="card-body w-full h-full">
-    @if (ChatState.ChartStates.Count <= 0) {
-        <EmptyCanvasState />
-    }
-    <div id="container" class="chart-container w-full h-full"></div>
-    <div id="chartCanvasContainer" class="chart-container w-full h-full" style="position: relative; display:none;">
-        <canvas id="chartCanvas"></canvas>
+<div class="w-full h-full">
+
+    <!-- Chart view: always in the DOM so the JS canvas reference survives tab switches.
+         Hidden via inline style when the Data tab is active; restored on switch back. -->
+    <div class="w-full h-full" style="@(ChatState.ActiveTab == CanvasTab.Chart ? "" : "display:none;")">
+        @if (ChatState.ChartStates.Count <= 0)
+        {
+            <EmptyCanvasState />
+        }
+        <div id="container" class="chart-container w-full h-full"></div>
+        <div id="chartCanvasContainer" class="chart-container w-full h-full" style="position: relative; display:none;">
+            <canvas id="chartCanvas"></canvas>
+        </div>
     </div>
+
+    <!-- Data view -->
+    @if (ChatState.ActiveTab == CanvasTab.Data)
+    {
+        @if (ChatState.ActiveDataVersion is null)
+        {
+            <EmptyCanvasState />
+        }
+        else
+        {
+            <DataViewer RawData="@ChatState.ActiveDataVersion.RawData" />
+        }
+    }
+
 </div>
 
 @code {
@@ -19,7 +40,7 @@
     private IJSObjectReference? chartModule;
     private int lastRenderedVersionNumber = -1;
     private int? _lastConversationId;
-    @* private ChartState? activeVersion => ChatState.ActiveChartVersion; *@
+    private CanvasTab _lastTab = CanvasTab.Chart;
 
     protected override void OnInitialized()
     {
@@ -28,48 +49,41 @@
 
     protected override void OnParametersSet()
     {
-        if(ActiveConversation?.Id != _lastConversationId)
+        if (ActiveConversation?.Id != _lastConversationId)
         {
             _lastConversationId = ActiveConversation?.Id;
-            lastRenderedVersionNumber = -1; // Reset to force re-render of chart for new conversation
+            lastRenderedVersionNumber = -1;
         }
     }
 
     private async void HandleStateChanged()
     {
+        // When switching back to Chart tab, force a re-render so Chart.js can
+        // resize into the now-visible canvas (was display:none on Data tab).
+        if (ChatState.ActiveTab == CanvasTab.Chart && _lastTab == CanvasTab.Data)
+            lastRenderedVersionNumber = -1;
+
+        _lastTab = ChatState.ActiveTab;
         await InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) {
+        if (firstRender)
             chartModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chartInterop.js");
-        }
-        @* if (chartModule == null && ChatState.ChartStates.Count > 0)
-        {
-            try 
-            {
-                chartModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chartInterop.js");
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[CanvasArea] Error loading JS Module: {ex.Message}");
-            }
-        } *@
+
+        if (ChatState.ActiveTab != CanvasTab.Chart) return;
 
         var activeVersion = ChatState.ActiveChartVersion;
-
-        if(activeVersion is not null
-           && activeVersion.VersionNumber != lastRenderedVersionNumber
-           && chartModule is not null
-           && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
+        if (activeVersion is not null
+            && activeVersion.VersionNumber != lastRenderedVersionNumber
+            && chartModule is not null
+            && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
         {
             lastRenderedVersionNumber = activeVersion.VersionNumber;
             var result = await chartModule.InvokeAsync<string>("renderChart", activeVersion.ChartSourceCode);
             if (result != "Success")
-            {
                 Console.Error.WriteLine($"Error rendering chart: {result}");
-            }
         }
     }
 
@@ -77,21 +91,13 @@
     {
         if (chartModule is not null)
         {
-            try
-            {
-                await chartModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // Ignore
-            }
+            try { await chartModule.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
         }
     }
 
     void IDisposable.Dispose()
     {
-         // Keep this for sync disposal of event handler if needed, 
-         // but IAsyncDisposable is preferred for Blazor components with JS interop.
-         ChatState.OnChange -= HandleStateChanged;
+        ChatState.OnChange -= HandleStateChanged;
     }
 }

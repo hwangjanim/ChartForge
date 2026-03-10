@@ -1,44 +1,60 @@
-﻿@using ChartForge.Web.Components.Icons
+@using ChartForge.Web.Components.Icons
+@using ChartForge.Web.Services
 @inject ChatStateService ChatState
 @implements IDisposable
 
-<!-- CanvasHeader.razor -->
-<div class="flex items-center justify-between p-4 bg-white border-b border-gray-200 w-full">
-    <!-- Left side: Chart title and subtitle -->
-    <div class="flex flex-col">
-        <span class="text-sm text-gray-500">Generated Chart</span>
-        <h2 class="text-lg font-semibold">@(ChatState.ActiveConversation?.Title ?? "Generated Chart")</h2>
-        <span class="text-xs text-gray-400">Status Indicator here???</span>
+<div class="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 w-full gap-4">
+
+    <!-- Tab toggle -->
+    <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold flex-shrink-0">
+        <button class="@TabClass(CanvasTab.Data) px-4 py-1.5 transition"
+                @onclick="() => ChatState.SetTab(CanvasTab.Data)">
+            Data View
+        </button>
+        <button class="@TabClass(CanvasTab.Chart) px-4 py-1.5 border-l border-gray-200 transition"
+                @onclick="() => ChatState.SetTab(CanvasTab.Chart)">
+            Chart View
+        </button>
     </div>
 
-    <!-- Right side: buttons -->
-    <div class="flex items-center gap-2">
-        <!-- Version navigation -->
-        @if (ChatState.TotalVersions > 0)
+    <!-- Conversation title -->
+    <h2 class="text-sm font-semibold text-gray-700 truncate flex-1 text-center">
+        @(ChatState.ActiveConversation?.Title is { Length: > 0 } t ? t : "New Conversation")
+    </h2>
+
+    <!-- Right side: context-aware version nav + export -->
+    <div class="flex items-center gap-2 flex-shrink-0">
+
+        @if (ChatState.ActiveTab == CanvasTab.Chart && ChatState.TotalVersions > 0)
         {
             <div class="flex items-center border rounded-lg overflow-hidden text-sm font-medium text-gray-300">
                 <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled="@(!ChatState.CanGoPrev)"
-                        @onclick="GoPrev">&lt; Prev
-                 </button>
-                 <VersionLabel CurrentVersion="@(ChatState.ActiveChartVersion?.VersionNumber ?? 0)" TotalVersions="@ChatState.TotalVersions" />
+                        disabled="@(!ChatState.CanGoPrev)"
+                        @onclick="ChartPrev">&lt; Prev</button>
+                <VersionLabel CurrentVersion="@ChatState.ActiveVersionNumber" TotalVersions="@ChatState.TotalVersions" />
                 <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled="@(!ChatState.CanGoNext)"
-                        @onclick="GoNext">Next &gt;
-                        
-                </button>
+                        @onclick="ChartNext">Next &gt;</button>
             </div>
 
-        @* share button and fullscreen button(?)  *@
-
-        <!-- Export button -->
-        <button class="px-3 py-1 gap-2 border-2 rounded-lg font-semibold text-[12px] bg-white text-red-500 flex items-center gap-1">
-           @* Export icon *@
-           <ExportIcon />
-            <span>Export</span>
-        </button>
+            <button class="px-3 py-1 gap-2 border-2 rounded-lg font-semibold text-[12px] bg-white text-red-500 flex items-center gap-1">
+                <ExportIcon />
+                <span>Export</span>
+            </button>
         }
 
+        @if (ChatState.ActiveTab == CanvasTab.Data && ChatState.TotalDataVersions > 0)
+        {
+            <div class="flex items-center border rounded-lg overflow-hidden text-sm font-medium text-gray-300">
+                <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled="@(!ChatState.CanGoDataPrev)"
+                        @onclick="DataPrev">&lt; Prev</button>
+                <VersionLabel CurrentVersion="@ChatState.ActiveDataVersionNumber" TotalVersions="@ChatState.TotalDataVersions" />
+                <button class="px-3 py-1 text-[12px] font-semibold text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled="@(!ChatState.CanGoDataNext)"
+                        @onclick="DataNext">Next &gt;</button>
+            </div>
+        }
 
     </div>
 </div>
@@ -53,20 +69,38 @@
     {
         await InvokeAsync(StateHasChanged);
     }
-    private void GoPrev()
+
+    private string TabClass(CanvasTab tab) =>
+        ChatState.ActiveTab == tab
+            ? "bg-gray-900 text-white"
+            : "text-gray-600 hover:bg-gray-50";
+
+    private void ChartPrev()
     {
         if (!ChatState.CanGoPrev) return;
-        var prev = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveChartVersion!.VersionNumber - 1);
+        var prev = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveVersionNumber - 1);
         if (prev is not null) ChatState.SetActiveVersion(prev);
     }
 
-    private void GoNext()
+    private void ChartNext()
     {
         if (!ChatState.CanGoNext) return;
-        var next = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveChartVersion!.VersionNumber + 1);
-        if (next is not null)  {
-            ChatState.SetActiveVersion(next);
-        }
+        var next = ChatState.ChartStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveVersionNumber + 1);
+        if (next is not null) ChatState.SetActiveVersion(next);
+    }
+
+    private void DataPrev()
+    {
+        if (!ChatState.CanGoDataPrev) return;
+        var prev = ChatState.DataStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveDataVersionNumber - 1);
+        if (prev is not null) ChatState.SetActiveDataVersion(prev);
+    }
+
+    private void DataNext()
+    {
+        if (!ChatState.CanGoDataNext) return;
+        var next = ChatState.DataStates.FirstOrDefault(v => v.VersionNumber == ChatState.ActiveDataVersionNumber + 1);
+        if (next is not null) ChatState.SetActiveDataVersion(next);
     }
 
     public void Dispose()

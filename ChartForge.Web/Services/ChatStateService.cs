@@ -1,12 +1,16 @@
 using ChartForge.Core.Entities;
 using ChartForge.Core.Enums;
 using ChartForge.Core.Interfaces;
+using Microsoft.AspNetCore.Hosting;
 
 namespace ChartForge.Web.Services;
+
+public enum CanvasTab { Chart, Data }
 
 public class ChatStateService
 {
     private readonly IConversationService _conversationService;
+    private readonly IWebHostEnvironment _env;
 
     // Initialized lazily via InitializeAsync; placeholders hold UI defaults until then.
     public User CurrentUser { get; private set; } = new User
@@ -19,9 +23,10 @@ public class ChatStateService
     public List<Conversation> Conversations { get; private set; } = new();
     public bool IsInitialized { get; private set; }
 
-    public ChatStateService(IConversationService conversationService)
+    public ChatStateService(IConversationService conversationService, IWebHostEnvironment env)
     {
         _conversationService = conversationService;
+        _env = env;
     }
 
     // ── Initialization ────────────────────────────────────────────────────────
@@ -47,6 +52,8 @@ public class ChatStateService
     public List<Message> Messages { get; private set; } = new();
     public List<ChartState> ChartStates { get; private set; } = new();
     public ChartState? ActiveChartVersion { get; private set; }
+    public List<DataState> DataStates { get; private set; } = new();
+    public DataState? ActiveDataVersion { get; private set; }
     public bool IsStreaming { get; private set; }
 
     private int _tempIdCounter = 0;
@@ -55,10 +62,17 @@ public class ChatStateService
     public event Action? OnChange;
     private void Notify() => OnChange?.Invoke();
 
+    public CanvasTab ActiveTab { get; private set; } = CanvasTab.Chart;
+
     public int TotalVersions => ChartStates.Count;
     public int ActiveVersionNumber => ActiveChartVersion?.VersionNumber ?? 0;
     public bool CanGoPrev => ActiveChartVersion is not null && ActiveVersionNumber > 1;
     public bool CanGoNext => ActiveChartVersion is not null && ActiveVersionNumber < TotalVersions;
+
+    public int TotalDataVersions => DataStates.Count;
+    public int ActiveDataVersionNumber => ActiveDataVersion?.VersionNumber ?? 0;
+    public bool CanGoDataPrev => ActiveDataVersion is not null && ActiveDataVersionNumber > 1;
+    public bool CanGoDataNext => ActiveDataVersion is not null && ActiveDataVersionNumber < TotalDataVersions;
 
     // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -74,6 +88,8 @@ public class ChatStateService
         Messages = full.Messages.ToList();
         ChartStates = full.ChartStates.ToList();
         ActiveChartVersion = ChartStates.MaxBy(v => v.VersionNumber);
+        DataStates = full.DataStates.ToList();
+        ActiveDataVersion = DataStates.MaxBy(v => v.VersionNumber);
         IsStreaming = false;
         IsNewUnsavedConversation = false;
         _pendingMessages.Clear();
@@ -94,6 +110,8 @@ public class ChatStateService
         Messages = new List<Message>();
         ChartStates = new List<ChartState>();
         ActiveChartVersion = null;
+        DataStates = new List<DataState>();
+        ActiveDataVersion = null;
         IsNewUnsavedConversation = true;
         _pendingMessages.Clear();
         Notify();
@@ -120,6 +138,22 @@ public class ChatStateService
             msg.ConversationId = realId;
         }
 
+        // Seed DataState v1 from the heatmaps CSV file if it exists.
+        var csvPath = Path.Combine(AppContext.BaseDirectory, "SeedData", "102heatmaps.csv");
+        if (File.Exists(csvPath))
+        {
+            var seedData = new DataState
+            {
+                VersionNumber = 1,
+                RawData = await File.ReadAllTextAsync(csvPath),
+                CreatedAtUtc = DateTime.UtcNow,
+                ConversationId = realId,
+            };
+            await _conversationService.AddDataStateAsync(seedData);
+            DataStates = new List<DataState> { seedData };
+            ActiveDataVersion = seedData;
+        }
+
         Conversations.Insert(0, ActiveConversation);
         IsNewUnsavedConversation = false;
         Notify();
@@ -135,9 +169,9 @@ public class ChatStateService
     }
 
     /// <summary>
-    /// Ends streaming, persists queued messages and the new chart version to the database.
+    /// Ends streaming, persists queued messages and any new chart/data version to the database.
     /// </summary>
-    public async Task CompleteStreamingAsync(ChartState? newVersion)
+    public async Task CompleteStreamingAsync(ChartState? newVersion, DataState? newDataVersion = null)
     {
         IsStreaming = false;
 
@@ -153,6 +187,14 @@ public class ChatStateService
             ActiveChartVersion = newVersion;
         }
 
+        if (newDataVersion is not null)
+        {
+            await _conversationService.AddDataStateAsync(newDataVersion);
+            DataStates.Add(newDataVersion);
+            ActiveConversation.DataStates.Add(newDataVersion);
+            ActiveDataVersion = newDataVersion;
+        }
+
         await _conversationService.UpdateTimestampAsync(ActiveConversation.Id);
         Notify();
     }
@@ -164,9 +206,21 @@ public class ChatStateService
         Notify();
     }
 
+    public void SetTab(CanvasTab tab)
+    {
+        ActiveTab = tab;
+        Notify();
+    }
+
     public void SetActiveVersion(ChartState version)
     {
         ActiveChartVersion = version;
+        Notify();
+    }
+
+    public void SetActiveDataVersion(DataState version)
+    {
+        ActiveDataVersion = version;
         Notify();
     }
 

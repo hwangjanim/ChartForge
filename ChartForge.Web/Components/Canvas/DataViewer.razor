@@ -1,0 +1,150 @@
+@using System.Text
+
+@if (string.IsNullOrWhiteSpace(RawData))
+{
+    <div class="flex items-center justify-center h-full text-gray-500 text-sm">
+        <p>No data to display.</p>
+    </div>
+}
+else
+{
+    <div class="flex flex-col h-full bg-gray-950 text-gray-200 rounded-lg overflow-hidden border border-gray-700">
+
+        <!-- Scrollable table area -->
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="sticky top-0 z-10 bg-gray-900">
+                    <tr>
+                        @foreach (var header in _headers)
+                        {
+                            <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-700 whitespace-nowrap">
+                                @header
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in PagedRows)
+                    {
+                        <tr class="border-b border-gray-800 hover:bg-gray-800 transition-colors duration-75">
+                            @foreach (var cell in row)
+                            {
+                                <td class="px-4 py-2 text-gray-300 whitespace-nowrap">@cell</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination footer -->
+        @if (TotalPages > 1)
+        {
+            <div class="flex-shrink-0 flex items-center justify-between px-4 py-2 border-t border-gray-700 bg-gray-900 text-xs text-gray-400">
+                <span>
+                    Rows @((_currentPage * PageSize) + 1)–@(Math.Min((_currentPage + 1) * PageSize, _rows.Count))
+                    of @_rows.Count
+                </span>
+                <div class="flex items-center gap-1">
+                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            disabled="@(_currentPage == 0)"
+                            @onclick="() => _currentPage = 0">&laquo;</button>
+                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            disabled="@(_currentPage == 0)"
+                            @onclick="() => _currentPage--">&lsaquo; Prev</button>
+                    <span class="px-3">@(_currentPage + 1) / @TotalPages</span>
+                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            disabled="@(_currentPage >= TotalPages - 1)"
+                            @onclick="() => _currentPage++">Next &rsaquo;</button>
+                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            disabled="@(_currentPage >= TotalPages - 1)"
+                            @onclick="() => _currentPage = TotalPages - 1">&raquo;</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string RawData { get; set; } = string.Empty;
+
+    private const int PageSize = 100;
+
+    private List<string> _headers = new();
+    private List<string[]> _rows = new();
+    private int _currentPage = 0;
+    private string? _lastRawData;
+
+    private int TotalPages => (int)Math.Ceiling(_rows.Count / (double)PageSize);
+    private IEnumerable<string[]> PagedRows => _rows.Skip(_currentPage * PageSize).Take(PageSize);
+
+    protected override void OnParametersSet()
+    {
+        if (RawData == _lastRawData) return;
+        _lastRawData = RawData;
+        ParseCsv();
+        _currentPage = 0;
+    }
+
+    private void ParseCsv()
+    {
+        _headers.Clear();
+        _rows.Clear();
+
+        if (string.IsNullOrWhiteSpace(RawData)) return;
+
+        using var reader = new StringReader(RawData);
+
+        var headerLine = reader.ReadLine();
+        if (headerLine is null) return;
+        _headers = ParseCsvLine(headerLine);
+
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+                _rows.Add(ParseCsvLine(line).ToArray());
+        }
+    }
+
+    /// <summary>
+    /// RFC-4180-aware CSV line parser. Handles quoted fields that contain commas or embedded quotes.
+    /// </summary>
+    private static List<string> ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var current = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    // Escaped double-quote inside a quoted field ("" → ")
+                    current.Append('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                fields.Add(current.ToString());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+
+        fields.Add(current.ToString()); // last field
+        return fields;
+    }
+}

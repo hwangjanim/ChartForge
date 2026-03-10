@@ -25,7 +25,7 @@ public class N8nChatStreamService : IChatStreamService
             chatInput = chatRequest.UserPrompt,
             currentCode = chatRequest.CurrentChartCode,
             chatHistory = chatRequest.History,
-            dataSchema = ""
+            dataSchema = chatRequest.CurrentData ?? ""
         };
 
         var json = JsonSerializer.Serialize(payload);
@@ -93,6 +93,10 @@ public class N8nChatStreamService : IChatStreamService
 
         if (state.ChartCodeBuilder.Length > 0)
             yield return new StreamResult { FinalChartCode = state.ChartCodeBuilder.ToString() };
+
+        // Flush any incomplete DATA block buffered at end-of-stream.
+        if (state.DataBlockActive && state.DataBuffer.Length > 0)
+            yield return new StreamResult { FinalData = state.DataBuffer.ToString().Trim() };
 
         // Fallback: if the OutputNode never fired (workflow without output node),
         // surface whatever the MainAgent accumulated after the THOUGHT block.
@@ -210,20 +214,20 @@ public class N8nChatStreamService : IChatStreamService
 
                             state.OutputThoughtClosed = true;
                             var afterThought = buffered[(thoughtEnd + "</THOUGHT>".Length)..].TrimStart('\n', '\r');
-                            foreach (var r in FilterCodeBlocks(afterThought, state))
+                            foreach (var r in ProcessOutputContent(afterThought, state))
                                 yield return r;
                         }
                         else
                         {
-                            // No THOUGHT block — flush the buffer through the code-block filter.
+                            // No THOUGHT block — flush the buffer through the content pipeline.
                             state.OutputThoughtClosed = true;
-                            foreach (var r in FilterCodeBlocks(buffered, state))
+                            foreach (var r in ProcessOutputContent(buffered, state))
                                 yield return r;
                         }
                     }
                     else
                     {
-                        foreach (var r in FilterCodeBlocks(contentStr, state))
+                        foreach (var r in ProcessOutputContent(contentStr, state))
                             yield return r;
                     }
                 }
@@ -231,6 +235,59 @@ public class N8nChatStreamService : IChatStreamService
                 {
                     state.ChartCodeBuilder.Append(contentStr);
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Routes OutputNode content through DATA-block extraction first, then through the
+    /// code-fence filter. DATA block content is yielded as <see cref="StreamResult.FinalData"/>;
+    /// surrounding text is passed to <see cref="FilterCodeBlocks"/>.
+    /// Handles DATA blocks that span multiple streaming chunks via <see cref="StreamParseState"/>.
+    /// </summary>
+    private static IEnumerable<StreamResult> ProcessOutputContent(string text, StreamParseState state)
+    {
+        const string openTag = "<DATA>";
+        const string closeTag = "</DATA>";
+        int pos = 0;
+
+        while (pos <= text.Length)
+        {
+            if (state.DataBlockActive)
+            {
+                int closeIdx = text.IndexOf(closeTag, pos, StringComparison.OrdinalIgnoreCase);
+                if (closeIdx < 0)
+                {
+                    // Still inside the DATA block — buffer the rest of this chunk.
+                    state.DataBuffer.Append(text[pos..]);
+                    yield break;
+                }
+
+                // Closing tag found — emit the complete data payload.
+                state.DataBuffer.Append(text[pos..closeIdx]);
+                state.DataBlockActive = false;
+                yield return new StreamResult { FinalData = state.DataBuffer.ToString().Trim() };
+                state.DataBuffer.Clear();
+                pos = closeIdx + closeTag.Length;
+            }
+            else
+            {
+                int openIdx = text.IndexOf(openTag, pos, StringComparison.OrdinalIgnoreCase);
+                if (openIdx < 0)
+                {
+                    // No DATA block in this chunk — pass remainder to the code-fence filter.
+                    foreach (var r in FilterCodeBlocks(text[pos..], state))
+                        yield return r;
+                    yield break;
+                }
+
+                // Yield text before the opening tag as normal assistant content.
+                if (openIdx > pos)
+                    foreach (var r in FilterCodeBlocks(text[pos..openIdx], state))
+                        yield return r;
+
+                state.DataBlockActive = true;
+                pos = openIdx + openTag.Length;
             }
         }
     }
@@ -299,6 +356,10 @@ public class N8nChatStreamService : IChatStreamService
         // OutputNode: defensive THOUGHT filter + clean content streaming.
         public StringBuilder OutputBuffer { get; } = new();
         public bool OutputThoughtClosed { get; set; }
+
+        // DATA block detection across chunks.
+        public StringBuilder DataBuffer { get; } = new();
+        public bool DataBlockActive { get; set; }
     }
 }
 
