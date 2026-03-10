@@ -92,8 +92,6 @@
 
         Conversation? conversation = ActiveConversation;
 
-        // Capture BEFORE AddConversationToListAsync flips it to false.
-        // Used to gate auto-title: we only rename on the very first message.
         bool isFirstMessage = ChatState.IsNewUnsavedConversation;
         bool titleUpdated = false;
 
@@ -147,8 +145,6 @@
             {
                 batchCount++;
 
-                // Early title update from the streaming layer (best-effort).
-                // Only applied on the first message and only once.
                 if (chunk.ConversationTitle is not null && isFirstMessage && !titleUpdated)
                 {
                     await ChatState.RenameConversationAsync(ActiveConversation.Id, chunk.ConversationTitle);

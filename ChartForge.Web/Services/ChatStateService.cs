@@ -117,10 +117,6 @@ public class ChatStateService
         Notify();
     }
 
-    /// <summary>
-    /// Persists the active conversation to the database and inserts it at the top of the list.
-    /// Updates any pending messages to use the real DB-assigned conversation ID.
-    /// </summary>
     public async Task AddConversationToListAsync(string title)
     {
         ActiveConversation.Title = string.IsNullOrWhiteSpace(title)
@@ -132,13 +128,11 @@ public class ChatStateService
         int realId = saved.Id;
         ActiveConversation.Id = realId;
 
-        // Patch any pending messages that were created with the temp ID.
         foreach (var msg in _pendingMessages)
         {
             msg.ConversationId = realId;
         }
 
-        // Seed DataState v1 from the heatmaps CSV file if it exists.
         var csvPath = Path.Combine(AppContext.BaseDirectory, "SeedData", "102heatmaps.csv");
         if (File.Exists(csvPath))
         {

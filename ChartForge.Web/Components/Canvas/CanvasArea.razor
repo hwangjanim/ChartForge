@@ -7,7 +7,7 @@
 
     <!-- Chart view: always in the DOM so the JS canvas reference survives tab switches.
          Hidden via inline style when the Data tab is active; restored on switch back. -->
-    <div class="w-full h-full" style="@(ChatState.ActiveTab == CanvasTab.Chart ? "" : "display:none;")">
+    <div style="@(ChatState.ActiveTab == CanvasTab.Chart ? "" : "display:none;")">
         @if (ChatState.ChartStates.Count <= 0)
         {
             <EmptyCanvasState />
