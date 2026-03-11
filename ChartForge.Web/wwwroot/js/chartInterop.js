@@ -8,8 +8,10 @@
 export function renderChart(code) {
     // --- 1. Detect Tool Type ---
     let toolType = 'unknown';
-    // Check standard prefixes from N8n
-    if (code.match(/Tool:\s*Highcharts/i) || code.match(/Tool:\s*D3/i) || code.match(/Tool:\s*ECharts/i)) {
+    // Check if the code is a full HTML document
+    if (code.match(/<!DOCTYPE\s+html>/i) || code.match(/<html[\s>]/i)) {
+        toolType = 'html';
+    } else if (code.match(/Tool:\s*Highcharts/i) || code.match(/Tool:\s*D3/i) || code.match(/Tool:\s*ECharts/i)) {
         toolType = 'container';
     } else if (code.match(/Tool:\s*Chart\.js/i)) {
         toolType = 'canvas';
@@ -47,7 +49,7 @@ export function renderChart(code) {
         window.myChart = null;
     }
 
-    if (toolType === 'container') {
+    if (toolType === 'container' || toolType === 'html') {
         // Show Container, Hide Canvas Wrapper
         if (container) container.style.display = 'block';
         if (canvasContainer) canvasContainer.style.display = 'none';
@@ -72,26 +74,57 @@ export function renderChart(code) {
         if (canvasContainer) canvasContainer.style.display = 'block';
     }
 
-     // --- 3. Prepare Code ---
-     // Regex to extract code between markdown blocks
-     const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i;
-    const match = code.match(codeBlockRegex);
-
-    if (match && match[1]) {
-        code = match[1];
-    } else {
-        // Fallback: cleanup prefixes if no regex match (legacy or raw code)
-        if (code.trim().startsWith("Tool:") || code.trim().startsWith("Delegated to:")) {
-            // Remove all lines until we find something that looks like code or variable declaration
-            const lines = code.trim().split('\n');
-            while (lines.length > 0 && (lines[0].trim().startsWith("Tool:") || lines[0].trim().startsWith("Delegated to:") || lines[0].trim() === '')) {
-                lines.shift();
+    // --- 3. Prepare Code ---
+    if (toolType === 'html') {
+        const htmlBlockRegex = /```(?:html)?\s*([\s\S]*?)\s*```/i;
+        const match = code.match(htmlBlockRegex);
+        if (match && match[1]) {
+            code = match[1];
+        } else {
+            const docRegex = /((?:<!DOCTYPE\s+html>)?\s*<html[\s\S]*<\/html>)/i;
+            const docMatch = code.match(docRegex);
+            if (docMatch && docMatch[1]) {
+                code = docMatch[1];
             }
-            code = lines.join('\n');
+        }
+    } else {
+        // Regex to extract code between markdown blocks
+        const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i;
+        const match = code.match(codeBlockRegex);
+
+        if (match && match[1]) {
+            code = match[1];
+        } else {
+            // Fallback: cleanup prefixes if no regex match (legacy or raw code)
+            if (code.trim().startsWith("Tool:") || code.trim().startsWith("Delegated to:")) {
+                // Remove all lines until we find something that looks like code or variable declaration
+                const lines = code.trim().split('\n');
+                while (lines.length > 0 && (lines[0].trim().startsWith("Tool:") || lines[0].trim().startsWith("Delegated to:") || lines[0].trim() === '')) {
+                    lines.shift();
+                }
+                code = lines.join('\n');
+            }
         }
     }
 
     try {
+        if (toolType === 'html') {
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.minHeight = '600px';
+            iframe.style.display = 'block';
+            iframe.style.border = 'none';
+            if (container) container.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(code);
+            doc.close();
+
+            return "Success";
+        }
+
         // Execute the code in a scoped function instead of global eval to limit scope bleed.
         // 'use strict' prevents the most dangerous dynamic-eval side-effects.
         const fn = new Function('"use strict";\n' + code);
