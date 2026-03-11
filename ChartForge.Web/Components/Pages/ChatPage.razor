@@ -157,6 +157,7 @@
 
                 if (chunk.AssistantChunk is not null)
                 {
+                    Console.WriteLine($"Assistant chunk has been added: {chunk.AssistantChunk} [END OF CHUNK ADDED]");
                     aiMsg.Append(chunk.AssistantChunk);
                     newAiMessage.Content = aiMsg.ToString();
                 }

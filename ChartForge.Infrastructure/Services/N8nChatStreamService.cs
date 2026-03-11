@@ -79,6 +79,7 @@ public class N8nChatStreamService : IChatStreamService
             }
             else
             {
+                Console.WriteLine("Added chunk to buffer: ", chunk);
                 jsonBuffer.Append(chunk);
 
                 if (TryParseJsonDocument(jsonBuffer.ToString(), out var bufferedDoc))
@@ -129,6 +130,7 @@ public class N8nChatStreamService : IChatStreamService
 
     private static IEnumerable<StreamResult> ParseAndProcess(string text, StreamParseState state)
     {
+        Console.WriteLine($"Parse and processing");
         if (!TryParseJsonDocument(text, out var doc))
             yield break;
 
@@ -177,6 +179,7 @@ public class N8nChatStreamService : IChatStreamService
 
                 if (state.ActiveNode == WorkflowNodeType.MainAgent)
                 {
+                    Console.WriteLine("Main agent");
                     // MainAgent events are used solely for <TITLE> extraction.
                     // All content (pre-tool intermediate text and post-tool response) is suppressed here;
                     // the OutputNode is the authoritative source for conversational content.
@@ -195,6 +198,9 @@ public class N8nChatStreamService : IChatStreamService
                         if (titleMatch.Success)
                             yield return new StreamResult { ConversationTitle = titleMatch.Groups[1].Value.Trim() };
                     }
+                    Console.WriteLine("Supposed assistant chunk, or the streamed thought process not buffered");
+                    Console.WriteLine("Didnt add anything to assistant chunk");
+
                     // Always suppress MainAgent content — do not yield AssistantChunk.
                 }
                 else if (state.ActiveNode == WorkflowNodeType.OutputNode)
@@ -327,6 +333,7 @@ public class N8nChatStreamService : IChatStreamService
         nodeName switch
         {
             string n when n.Contains("Main Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
+            string n when n.Contains("AI Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
             string n when n.Contains("Output", StringComparison.OrdinalIgnoreCase)     => WorkflowNodeType.OutputNode,
             string n when n.Contains("Charts.js", StringComparison.OrdinalIgnoreCase)  => WorkflowNodeType.ChartAgent,
             string n when n.Contains("chartjs", StringComparison.OrdinalIgnoreCase)    => WorkflowNodeType.ChartAgent,
