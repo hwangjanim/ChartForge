@@ -115,12 +115,22 @@ export function renderChart(code) {
             iframe.style.minHeight = '600px';
             iframe.style.display = 'block';
             iframe.style.border = 'none';
-            if (container) container.appendChild(iframe);
 
-            const doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(code);
-            doc.close();
+            // Allow scripts but restrict same-origin (sandbox prevents 403 CDN errors 
+            // by forcing null origin, which CDNs typically allow whereas about:srcdoc fails checking)
+            iframe.setAttribute('sandbox', 'allow-scripts allow-popups');
+
+            if (container) {
+                container.appendChild(iframe);
+            }
+
+            // Replace code.highcharts.com with jsDelivr CDN
+            // code.highcharts.com actively blocks iframe null/Blob origins
+            const safeCode = code.replace(/https:\/\/code\.highcharts\.com\//g, 'https://cdn.jsdelivr.net/npm/highcharts@11/');
+
+            // Using Blob avoids the 'about:srcdoc' origin that CDN blocking rules target
+            const blob = new Blob([safeCode], { type: 'text/html' });
+            iframe.src = URL.createObjectURL(blob);
 
             return "Success";
         }
