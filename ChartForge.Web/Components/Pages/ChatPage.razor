@@ -199,7 +199,7 @@
             // strictly (e.g. text before <THOUGHT>), so we clean up here regardless.
             if (aiMsg.Length > 0)
             {
-                var (cleanContent, extractedTitle, extractedData) = ThoughtBlockParser.Parse(aiMsg.ToString());
+                var (cleanContent, extractedTitle, extractedData, extractedSql) = ThoughtBlockParser.Parse(aiMsg.ToString());
                 newAiMessage.Content = cleanContent;
 
                 if (isFirstMessage && !titleUpdated && !string.IsNullOrWhiteSpace(extractedTitle))

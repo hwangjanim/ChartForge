@@ -13,12 +13,16 @@ public static class ThoughtBlockParser
     private static readonly Regex DataBlockRegex =
         new(@"<DATA>(.*?)</DATA>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
+    // New SQL Regex
+    private static readonly Regex SqlBlockRegex =
+        new(@"<SQL>(.*?)</SQL>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
     /// <summary>
     /// Strips &lt;THOUGHT&gt; and &lt;DATA&gt; blocks from raw AI content, extracting
     /// the optional &lt;TITLE&gt; from within the thought block and the CSV from the data block.
     /// Acts as a post-processing safety net after streaming-layer filtering.
     /// </summary>
-    public static (string CleanContent, string? Title, string? Data) Parse(string raw)
+    public static (string CleanContent, string? Title, string? Data, string? Sql) Parse(string raw)
     {
         // Extract <TITLE> from inside the <THOUGHT> block.
         var thoughtMatch = ThoughtBlockRegex.Match(raw);
@@ -42,6 +46,14 @@ public static class ThoughtBlockParser
             cleaned = DataBlockRegex.Replace(cleaned, "").Trim();
         }
 
-        return (cleaned, title, data);
+        // Extract and strip the <SQL> block
+        var sqlMatch = SqlBlockRegex.Match(cleaned);
+        string? sql = null;
+        if (sqlMatch.Success)
+        {
+            sql = sqlMatch.Groups[1].Value.Trim();
+            cleaned = SqlBlockRegex.Replace(cleaned, "").Trim();
+        }
+        return (cleaned, title, data, sql);
     }
 }

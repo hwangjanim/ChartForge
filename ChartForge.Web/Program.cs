@@ -23,6 +23,9 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     )
 );
 
+// SQL service
+builder.Services.AddScoped<ISqlExecutionService, SqlExecutionService>();
+
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<ChatStateService>();
 
