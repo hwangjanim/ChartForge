@@ -11,6 +11,8 @@
 *.sln.docstates
 data/
 
+final_na.json
+Updated_3-9-26.json
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
