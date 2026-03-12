@@ -11,11 +11,12 @@
         @if (ChatState.ChartStates.Count <= 0)
         {
             <EmptyCanvasState />
+        } else {
+            <div id="container" class="chart-container w-full h-full"></div>
+            <div id="chartCanvasContainer" class="chart-container w-full h-full" style="position: relative; display:none;">
+                <canvas id="chartCanvas"></canvas>
+            </div>
         }
-        <div id="container" class="chart-container w-full h-full"></div>
-        <div id="chartCanvasContainer" class="chart-container w-full h-full" style="position: relative; display:none;">
-            <canvas id="chartCanvas"></canvas>
-        </div>
     </div>
 
     <!-- Data view -->

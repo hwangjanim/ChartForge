@@ -2,6 +2,7 @@
 @page "/c/{ConversationId:int}"
 @inject ChatStateService ChatState
 @inject IChatStreamService ChatStreamService
+@inject ISqlQueryService SqlQueryService
 @inject IJSRuntime JS;
 @implements IDisposable
 
@@ -60,7 +61,6 @@
     {
         if (ConversationId.HasValue && ChatState.ActiveConversation?.Id != ConversationId.Value)
         {
-            // Try from the cached list first; fall back to a direct DB load.
             var conversation = ChatState.Conversations.FirstOrDefault(c => c.Id == ConversationId.Value)
                 ?? new Conversation { Id = ConversationId.Value };
             await ChatState.LoadConversationAsync(conversation);
@@ -89,6 +89,7 @@
 
         string fullCode = "";
         string fullData = "";
+        bool sqlExecuted = false;
 
         Conversation? conversation = ActiveConversation;
 
@@ -124,6 +125,10 @@
         }
 
         @* make the payload *@
+        string dbSchema = "";
+        try { dbSchema = await SqlQueryService.GetSchemaAsync(); }
+        catch { /* edi walang schema */ }
+
         ChatRequest request = new ChatRequest {
             UserPrompt = userPrompt,
             CurrentChartCode = ChatState.ActiveChartVersion?.ChartSourceCode,
@@ -134,7 +139,7 @@
                 Role = m.Role.ToString().ToLower(),
                 Content = m.Content,
             }).ToList(),
-            DataSchema = ""
+            DataSchema = dbSchema
         };
 
         StringBuilder? aiMsg = new StringBuilder();
@@ -185,6 +190,35 @@
                     await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
                 }
 
+                if (chunk.SqlQuery is not null && !sqlExecuted)
+                {
+                    sqlExecuted = true;
+                    try
+                    {
+                        var queryResults = await SqlQueryService.ExecuteQueryAsync(chunk.SqlQuery);
+                        var csvData = ConvertResultsToCsv(queryResults);
+
+                        if (!string.IsNullOrWhiteSpace(csvData))
+                        {
+                            var newDataVersion = new DataState
+                            {
+                                VersionNumber = conversation.DataStates.Count + 1,
+                                RawData = csvData,
+                                CreatedAtUtc = DateTime.UtcNow,
+                                ConversationId = conversation.Id,
+                            };
+                            await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
+                            ChatState.SetTab(CanvasTab.Data);
+                        }
+                    }
+                    catch (Exception sqlEx)
+                    {
+                        Console.Error.WriteLine($"SQL execution error: {sqlEx.Message}");
+                        aiMsg.Append($"\n\nSQL execution error: {sqlEx.Message}");
+                        newAiMessage.Content = aiMsg.ToString();
+                    }
+                }
+
                 if (batchCount >= batchSize)
                 {
                     batchCount = 0;
@@ -199,7 +233,8 @@
             // strictly (e.g. text before <THOUGHT>), so we clean up here regardless.
             if (aiMsg.Length > 0)
             {
-                var (cleanContent, extractedTitle, extractedData, extractedSql) = ThoughtBlockParser.Parse(aiMsg.ToString());
+                Console.WriteLine($"AI MSG: {aiMsg}");
+                var (cleanContent, extractedTitle, extractedData) = ThoughtBlockParser.Parse(aiMsg.ToString());
                 newAiMessage.Content = cleanContent;
 
                 if (isFirstMessage && !titleUpdated && !string.IsNullOrWhiteSpace(extractedTitle))
@@ -208,7 +243,7 @@
                     titleUpdated = true;
                 }
 
-                // Safety net: if the streaming layer missed a <DATA> block, persist it now.
+                // Safety net: kapag walang DATA block, oks lng
                 if (!string.IsNullOrWhiteSpace(extractedData) && string.IsNullOrEmpty(fullData))
                 {
                     var newDataVersion = new DataState
@@ -220,6 +255,7 @@
                     };
                     await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
                 }
+
             }
 
             if (ChatState.IsStreaming)
@@ -235,6 +271,30 @@
         }
 
         StateHasChanged();
+    }
+
+    private static string ConvertResultsToCsv(IEnumerable<IDictionary<string, object?>> results)
+    {
+        var list = results.ToList();
+        if (list.Count == 0) return "";
+
+        var sb = new StringBuilder();
+        var columns = list[0].Keys.ToList();
+        sb.AppendLine(string.Join(",", columns));
+
+        foreach (var row in list)
+        {
+            var values = columns.Select(col =>
+            {
+                var val = row[col]?.ToString() ?? "";
+                if (val.Contains(',') || val.Contains('"') || val.Contains('\n'))
+                    return $"\"{val.Replace("\"", "\"\"")}\"";
+                return val;
+            });
+            sb.AppendLine(string.Join(",", values));
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     public void Dispose()

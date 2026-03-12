@@ -16,4 +16,5 @@ public class StreamResult
     public string? FinalChartCode { get; set; }
     public string? FinalData { get; set; }
     public string? ConversationTitle { get; set; }
+    public string? SqlQuery { get; set; }
 }

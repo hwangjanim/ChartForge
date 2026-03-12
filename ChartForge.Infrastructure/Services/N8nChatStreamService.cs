@@ -11,6 +11,11 @@ public class N8nChatStreamService : IChatStreamService
 {
     private readonly HttpClient _httpClient;
 
+    private const string OPENING_THOUGHT_TAG = "<THOUGHT>";
+    private const string CLOSING_THOUGHT_TAG = "</THOUGHT>";
+    private const string OPENING_SQL_TAG = "<SQL>";
+    private const string CLOSING_SQL_TAG = "</SQL>";
+
     public N8nChatStreamService(HttpClient httpClient)
     {
         _httpClient = httpClient;
@@ -25,7 +30,8 @@ public class N8nChatStreamService : IChatStreamService
             chatInput = chatRequest.UserPrompt,
             currentCode = chatRequest.CurrentChartCode,
             chatHistory = chatRequest.History,
-            dataSchema = chatRequest.CurrentData ?? ""
+            dataSchema = chatRequest.CurrentData ?? "",
+            dbSchema = chatRequest.DataSchema ?? ""
         };
 
         var json = JsonSerializer.Serialize(payload);
@@ -79,6 +85,7 @@ public class N8nChatStreamService : IChatStreamService
             }
             else
             {
+                Console.WriteLine("Added chunk to buffer: ", chunk);
                 jsonBuffer.Append(chunk);
 
                 if (TryParseJsonDocument(jsonBuffer.ToString(), out var bufferedDoc))
@@ -129,6 +136,7 @@ public class N8nChatStreamService : IChatStreamService
 
     private static IEnumerable<StreamResult> ParseAndProcess(string text, StreamParseState state)
     {
+        Console.WriteLine($"Parse and processing");
         if (!TryParseJsonDocument(text, out var doc))
             yield break;
 
@@ -145,6 +153,8 @@ public class N8nChatStreamService : IChatStreamService
             JsonValueKind.Object => new[] { root },
             _ => Enumerable.Empty<JsonElement>()
         };
+
+        bool IsDoneThought = false;
 
         foreach (var element in elements)
         {
@@ -182,26 +192,42 @@ public class N8nChatStreamService : IChatStreamService
                     // the OutputNode is the authoritative source for conversational content.
                     if (!state.TitleExtracted)
                     {
-                        state.ThoughtBuffer.Append(contentStr);
-                        var buffered = state.ThoughtBuffer.ToString();
+                        string? buffered = "";
+                        int thoughtEnd = 0;
+                        if (!IsDoneThought)
+                        {
+                            state.ThoughtBuffer.Append(contentStr);
+                            buffered = state.ThoughtBuffer.ToString();
 
-                        int thoughtEnd = buffered.IndexOf("</THOUGHT>", StringComparison.OrdinalIgnoreCase);
-                        if (thoughtEnd < 0)
-                            continue; // Still buffering — keep going.
+                            thoughtEnd = buffered.IndexOf("</THOUGHT>", StringComparison.OrdinalIgnoreCase);
+                            if (thoughtEnd < 0)
+                                continue; // Still buffering — keep going.
+
+                            // done thoughting
+                            IsDoneThought = true;
+                        }
+
+
+                        // Extract SQL from the thought buffer if present.
+                        var sqlMatch = SqlTagPattern.Match(buffered);
+                        if (sqlMatch.Success)
+                            yield return new StreamResult { SqlQuery = sqlMatch.Groups[1].Value.Trim() };
 
                         state.TitleExtracted = true;
+
 
                         var titleMatch = TitleRegex.Match(buffered[..thoughtEnd]);
                         if (titleMatch.Success)
                             yield return new StreamResult { ConversationTitle = titleMatch.Groups[1].Value.Trim() };
                     }
+
                     // Always suppress MainAgent content — do not yield AssistantChunk.
                 }
                 else if (state.ActiveNode == WorkflowNodeType.OutputNode)
                 {
                     // OutputNode carries the clean final response.
                     // Apply a defensive THOUGHT filter in case the model echoes its reasoning here too.
-                    if (!state.OutputThoughtClosed)
+                    if (!state.OutputThoughtClosed && !state.SqlClosed)
                     {
                         state.OutputBuffer.Append(contentStr);
                         var buffered = state.OutputBuffer.ToString().TrimStart();
@@ -212,9 +238,39 @@ public class N8nChatStreamService : IChatStreamService
                             int thoughtEnd = buffered.IndexOf("</THOUGHT>", StringComparison.OrdinalIgnoreCase);
                             if (thoughtEnd < 0) continue;
 
-                            state.OutputThoughtClosed = true;
                             var afterThought = buffered[(thoughtEnd + "</THOUGHT>".Length)..].TrimStart('\n', '\r');
+
+                            // After thought, SQL may follow — keep buffering until we know.
+                            if (afterThought.Length == 0)
+                                continue; // More content needed to determine what follows.
+
+                            if (afterThought.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
+                            {
+                                int sqlEnd = afterThought.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
+                                if (sqlEnd < 0) continue; // SQL tag opened but not closed — keep buffering.
+
+                                var sqlContent = afterThought[OPENING_SQL_TAG.Length..sqlEnd].Trim();
+                                yield return new StreamResult { SqlQuery = sqlContent };
+                                state.SqlClosed = true;
+                                afterThought = afterThought[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
+                            }
+
+                            state.OutputThoughtClosed = true;
                             foreach (var r in ProcessOutputContent(afterThought, state))
+                                yield return r;
+                        }
+                        else if (buffered.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
+                        {
+                            int sqlEnd = buffered.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
+                            if (sqlEnd < 0) continue;
+
+                            // Extract and yield the SQL query for execution by the caller.
+                            var sqlContent = buffered[OPENING_SQL_TAG.Length..sqlEnd].Trim();
+                            yield return new StreamResult { SqlQuery = sqlContent };
+
+                            state.SqlClosed = true;
+                            var afterSql = buffered[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
+                            foreach (var r in ProcessOutputContent(afterSql, state))
                                 yield return r;
                         }
                         else
@@ -327,6 +383,7 @@ public class N8nChatStreamService : IChatStreamService
         nodeName switch
         {
             string n when n.Contains("Main Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
+            string n when n.Contains("AI Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
             string n when n.Contains("Output", StringComparison.OrdinalIgnoreCase)     => WorkflowNodeType.OutputNode,
             string n when n.Contains("Charts.js", StringComparison.OrdinalIgnoreCase)  => WorkflowNodeType.ChartAgent,
             string n when n.Contains("chartjs", StringComparison.OrdinalIgnoreCase)    => WorkflowNodeType.ChartAgent,
@@ -342,12 +399,16 @@ public class N8nChatStreamService : IChatStreamService
     // Matches <TITLE>...</TITLE> inside the thought block (case-insensitive, single-line).
     private static readonly Regex TitleRegex =
         new(@"<TITLE>(.*?)</TITLE>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+    
+    private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)<\/SQL>", 
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private sealed class StreamParseState
     {
         public WorkflowNodeType ActiveNode { get; set; } = WorkflowNodeType.Unknown;
         public bool IsInsideCodeBlock { get; set; }
         public StringBuilder ChartCodeBuilder { get; } = new();
+        public StringBuilder SqlBuffer { get; } = new StringBuilder();
 
         // MainAgent: buffer THOUGHT block to extract <TITLE>; content is always suppressed.
         public StringBuilder ThoughtBuffer { get; } = new();
@@ -356,6 +417,7 @@ public class N8nChatStreamService : IChatStreamService
         // OutputNode: defensive THOUGHT filter + clean content streaming.
         public StringBuilder OutputBuffer { get; } = new();
         public bool OutputThoughtClosed { get; set; }
+        public bool SqlClosed { get; set; }
 
         // DATA block detection across chunks.
         public StringBuilder DataBuffer { get; } = new();

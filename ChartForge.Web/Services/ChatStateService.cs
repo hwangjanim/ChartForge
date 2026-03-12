@@ -2,6 +2,7 @@ using ChartForge.Core.Entities;
 using ChartForge.Core.Enums;
 using ChartForge.Core.Interfaces;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.SqlClient;
 
 namespace ChartForge.Web.Services;
 
