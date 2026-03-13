@@ -49,24 +49,33 @@ public class N8nChatStreamService : IChatStreamService
 
         var state = new StreamParseState();
         var jsonBuffer = new StringBuilder();
+        var parser = new AiStreamParser();
 
         while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
 
-            // Blank line = SSE event boundary; attempt to flush accumulated buffer.
-            if (string.IsNullOrWhiteSpace(line))
+            if (string.IsNullOrEmpty(line))
             {
-                if (jsonBuffer.Length > 0)
-                {
-                    var buffered = jsonBuffer.ToString();
-                    jsonBuffer.Clear();
+                foreach (var result in parser.FlushBuffer(state))
+                    yield return result;
 
-                    foreach (var result in ParseAndProcess(buffered, state))
-                        yield return result;
-                }
                 continue;
             }
+
+            // Blank line = SSE event boundary; attempt to flush accumulated buffer.
+            // if (string.IsNullOrWhiteSpace(line))
+            // {
+            //     if (jsonBuffer.Length > 0)
+            //     {
+            //         var buffered = jsonBuffer.ToString();
+            //         jsonBuffer.Clear();
+
+            //         foreach (var result in ParseAndProcess(buffered, state))
+            //             yield return result;
+            //     }
+            //     continue;
+            // }
 
             string chunk = line.StartsWith("data: ", StringComparison.Ordinal)
                 ? line["data: ".Length..]
@@ -78,46 +87,51 @@ public class N8nChatStreamService : IChatStreamService
             // only enable for testing
             // Console.WriteLine("RAW: " + chunk);
 
-            if (TryParseJsonDocument(chunk, out var doc))
-            {
-                using (doc)
-                    foreach (var result in ProcessDocument(doc!.RootElement, state))
-                        yield return result;
-            }
-            else
-            {
-                Console.WriteLine("Added chunk to buffer: ", chunk);
-                jsonBuffer.Append(chunk);
+            foreach (var result in parser.ProcessChunk(chunk, state))
+                yield return result;
 
-                if (TryParseJsonDocument(jsonBuffer.ToString(), out var bufferedDoc))
-                {
-                    jsonBuffer.Clear();
-                    using (bufferedDoc)
-                        foreach (var result in ProcessDocument(bufferedDoc!.RootElement, state))
-                            yield return result;
-                }
-            }
+            // if (TryParseJsonDocument(chunk, out var doc))
+            // {
+            //     using (doc)
+            //         foreach (var result in ProcessDocument(doc!.RootElement, state))
+            //             yield return result;
+            // }
+            // else
+            // {
+            //     jsonBuffer.Append(chunk);
+
+            //     if (TryParseJsonDocument(jsonBuffer.ToString(), out var bufferedDoc))
+            //     {
+            //         jsonBuffer.Clear();
+            //         using (bufferedDoc)
+            //             foreach (var result in ProcessDocument(bufferedDoc!.RootElement, state))
+            //                 yield return result;
+            //     }
+            // }
         }
 
-        if (state.ChartCodeBuilder.Length > 0)
-            yield return new StreamResult { FinalChartCode = state.ChartCodeBuilder.ToString() };
+        foreach (var r in parser.EndOfStreamFlush(state))
+            yield return r;
 
-        // Flush any incomplete DATA block buffered at end-of-stream.
-        if (state.DataBlockActive && state.DataBuffer.Length > 0)
-            yield return new StreamResult { FinalData = state.DataBuffer.ToString().Trim() };
+        // if (state.ChartCodeBuilder.Length > 0)
+        //     yield return new StreamResult { FinalChartCode = state.ChartCodeBuilder.ToString() };
 
-        // Fallback: if the OutputNode never fired (workflow without output node),
-        // surface whatever the MainAgent accumulated after the THOUGHT block.
-        if (!state.OutputThoughtClosed && state.ThoughtBuffer.Length > 0)
-        {
-            var raw = state.ThoughtBuffer.ToString();
-            int thoughtEnd = raw.IndexOf(CLOSING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase);
-            var fallback = thoughtEnd >= 0
-                ? raw[(thoughtEnd + CLOSING_THOUGHT_TAG.Length)..].TrimStart('\n', '\r')
-                : raw;
-            if (!string.IsNullOrEmpty(fallback))
-                yield return new StreamResult { AssistantChunk = fallback };
-        }
+        // // Flush any incomplete DATA block buffered at end-of-stream.
+        // if (state.DataBlockActive && state.DataBuffer.Length > 0)
+        //     yield return new StreamResult { FinalData = state.DataBuffer.ToString().Trim() };
+
+        // // Fallback: if the OutputNode never fired (workflow without output node),
+        // // surface whatever the MainAgent accumulated after the THOUGHT block.
+        // if (!state.OutputThoughtClosed && state.ThoughtBuffer.Length > 0)
+        // {
+        //     var raw = state.ThoughtBuffer.ToString();
+        //     int thoughtEnd = raw.IndexOf(CLOSING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase);
+        //     var fallback = thoughtEnd >= 0
+        //         ? raw[(thoughtEnd + CLOSING_THOUGHT_TAG.Length)..].TrimStart('\n', '\r')
+        //         : raw;
+        //     if (!string.IsNullOrEmpty(fallback))
+        //         yield return new StreamResult { AssistantChunk = fallback };
+        // }
     }
 
 
@@ -454,32 +468,6 @@ public class N8nChatStreamService : IChatStreamService
     private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)<\/SQL>", 
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private sealed class StreamParseState
-    {
-        public WorkflowNodeType ActiveNode { get; set; } = WorkflowNodeType.Unknown;
-        public bool IsInsideCodeBlock { get; set; }
-        public StringBuilder ChartCodeBuilder { get; } = new();
-        public StringBuilder SqlBuffer { get; } = new StringBuilder();
-
-        // MainAgent: buffer THOUGHT block to extract <TITLE>; content is always suppressed.
-        public StringBuilder ThoughtBuffer { get; } = new();
-        public bool TitleExtracted { get; set; }
-
-        // OutputNode: defensive THOUGHT filter + clean content streaming.
-        public StringBuilder OutputBuffer { get; } = new();
-        public bool OutputThoughtClosed { get; set; }
-        public bool SqlClosed { get; set; }
-
-        // DATA block detection across chunks.
-        public StringBuilder DataBuffer { get; } = new();
-        public bool DataBlockActive { get; set; }
-    }
 }
 
-public enum WorkflowNodeType
-{
-    Unknown,
-    MainAgent,
-    ChartAgent,
-    OutputNode,
-}
+
