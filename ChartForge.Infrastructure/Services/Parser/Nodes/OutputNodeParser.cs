@@ -170,7 +170,7 @@ public class OutputNodeParser : INodeParser
 
                     yield return new StreamResult
                     {
-                        FinalChartCode = text[pos..htmlEnd]
+                        FinalChartCode = null
                     };
                     state.IsInsideCodeBlock = false;
                     pos = htmlEnd;
