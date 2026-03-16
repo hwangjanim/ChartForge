@@ -18,52 +18,52 @@ public class OutputNodeParser : INodeParser
         state.OutputBuffer.Append(content);
         var buffered = state.OutputBuffer.ToString();
 
-        if (!state.OutputThoughtClosed && !state.SqlClosed)
+        if (!state.OutputThoughtClosed)
         {
-              if (buffered.StartsWith(OPENING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase))
+            if (buffered.StartsWith(OPENING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase))
+            {
+                // OutputNode also has a thought block — buffer until it closes.
+                int thoughtEnd = buffered.IndexOf(CLOSING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase);
+                if (thoughtEnd < 0) 
+                    yield break;
+
+                var afterThought = buffered[(thoughtEnd + CLOSING_THOUGHT_TAG.Length)..].TrimStart('\n', '\r');
+
+                // After thought, SQL may follow — keep buffering until we know.
+                if (afterThought.Length == 0)
+                    yield break; // More content needed to determine what follows.
+
+                if (afterThought.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
                 {
-                    // OutputNode also has a thought block — buffer until it closes.
-                    int thoughtEnd = buffered.IndexOf(CLOSING_THOUGHT_TAG, StringComparison.OrdinalIgnoreCase);
-                    if (thoughtEnd < 0) 
-                        yield break;
-
-                    var afterThought = buffered[(thoughtEnd + CLOSING_THOUGHT_TAG.Length)..].TrimStart('\n', '\r');
-
-                    // After thought, SQL may follow — keep buffering until we know.
-                    if (afterThought.Length == 0)
-                        yield break; // More content needed to determine what follows.
-
-                    if (afterThought.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
-                    {
-                        int sqlEnd = afterThought.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
-                        if (sqlEnd < 0) 
-                            yield break; // SQL tag opened but not closed — keep buffering.
-
-                        var sqlContent = afterThought[OPENING_SQL_TAG.Length..sqlEnd].Trim();
-                        yield return new StreamResult { SqlQuery = sqlContent };
-                        state.SqlClosed = true;
-                        afterThought = afterThought[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
-                    }
-
-                    state.OutputThoughtClosed = true;
-                    foreach (var r in ProcessOutputContent(afterThought, state))
-                        yield return r;
-                }
-                else if (buffered.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
-                {
-                    int sqlEnd = buffered.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
+                    int sqlEnd = afterThought.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
                     if (sqlEnd < 0) 
-                        yield break;
+                        yield break; // SQL tag opened but not closed — keep buffering.
 
-                    // Extract and yield the SQL query for execution by the caller.
-                    var sqlContent = buffered[OPENING_SQL_TAG.Length..sqlEnd].Trim();
+                    var sqlContent = afterThought[OPENING_SQL_TAG.Length..sqlEnd].Trim();
                     yield return new StreamResult { SqlQuery = sqlContent };
-
                     state.SqlClosed = true;
-                    var afterSql = buffered[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
-                    foreach (var r in ProcessOutputContent(afterSql, state))
-                        yield return r;
+                    afterThought = afterThought[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
                 }
+
+                state.OutputThoughtClosed = true;
+                foreach (var r in ProcessOutputContent(afterThought, state))
+                    yield return r;
+            }
+            else if (buffered.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
+            {
+                int sqlEnd = buffered.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
+                if (sqlEnd < 0) 
+                    yield break;
+
+                // Extract and yield the SQL query for execution by the caller.
+                var sqlContent = buffered[OPENING_SQL_TAG.Length..sqlEnd].Trim();
+                yield return new StreamResult { SqlQuery = sqlContent };
+
+                state.SqlClosed = true;
+                var afterSql = buffered[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
+                foreach (var r in ProcessOutputContent(afterSql, state))
+                    yield return r;
+            }
             else
             {
                 // No THOUGHT block — flush the buffer through the content pipeline.
@@ -72,6 +72,25 @@ public class OutputNodeParser : INodeParser
                     yield return r;
             }
             state.OutputBuffer.Clear();
+        }
+
+        if (!state.SqlClosed)
+        {
+            if (buffered.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
+            {
+                int sqlEnd = buffered.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
+                if (sqlEnd < 0) 
+                    yield break;
+
+                // Extract and yield the SQL query for execution by the caller.
+                var sqlContent = buffered[OPENING_SQL_TAG.Length..sqlEnd].Trim();
+                yield return new StreamResult { SqlQuery = sqlContent };
+
+                state.SqlClosed = true;
+                var afterSql = buffered[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
+                foreach (var r in ProcessOutputContent(afterSql, state))
+                    yield return r;
+            }
         }
     }
 
@@ -166,12 +185,13 @@ public class OutputNodeParser : INodeParser
                         yield break;
                     }
 
-                    int htmlEnd = endIdx + endingHtmlTag.Length;
-
                     yield return new StreamResult
                     {
                         FinalChartCode = null
                     };
+
+                    int htmlEnd = endIdx + endingHtmlTag.Length;
+
                     state.IsInsideCodeBlock = false;
                     pos = htmlEnd;
 

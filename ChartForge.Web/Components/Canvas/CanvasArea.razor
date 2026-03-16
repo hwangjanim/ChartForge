@@ -85,7 +85,9 @@
             var csv = ChatState.ActiveDataVersion?.RawData ?? "";
 
             // Escaping the backticks just in case the csv has backticks
-            csv = csv.Replace("`", "\\`");
+            csv = csv.Replace("\\", "\\\\")
+                    .Replace("`", "\\`")
+                    .Replace("${", "\\${");
 
             // inject the raw data 
             if (chartCode.Contains("__CHARTFORGE_DATA__")) {
