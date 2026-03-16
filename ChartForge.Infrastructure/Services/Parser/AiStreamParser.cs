@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using ChartForge.Core.Models;
 
 namespace ChartForge.Infrastructure.Services;
@@ -72,10 +73,31 @@ public class AiStreamParser
 
     }
 
+    // Matches ```sql ... ``` (backtick-fenced SQL that the LLM sometimes returns instead of <SQL> tags)
+    private static readonly Regex BacktickSqlPattern = new(
+        @"```sql\s*(.*?)\s*```", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    // Matches <SQL>...</SQL>
+    private static readonly Regex SqlTagPattern = new(
+        @"<SQL>(.*?)</SQL>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public IEnumerable<StreamResult> EndOfStreamFlush(StreamParseState state)
     {
         if (state.ChartCodeBuilder.Length > 0)
-            yield return new StreamResult { FinalChartCode = state.ChartCodeBuilder.ToString() };
+        {
+            var accumulated = state.ChartCodeBuilder.ToString();
+
+            // Guard: if the chart agent accumulated SQL instead of chart code, extract and
+            // yield it as SqlQuery so the frontend executes it in the data table — not as HTML.
+            foreach (var r in ExtractSqlFromChartBuffer(accumulated))
+            {
+                yield return r;
+            }
+
+            // Only emit as chart code if no SQL was extracted
+            if (!ContainsSql(accumulated))
+                yield return new StreamResult { FinalChartCode = accumulated };
+        }
 
         // Flush any incomplete DATA block buffered at end-of-stream.
         if (state.DataBlockActive && state.DataBuffer.Length > 0)
@@ -191,4 +213,26 @@ public class AiStreamParser
             string n when n.Contains("Highcharts", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.ChartAgent,
             _ => WorkflowNodeType.Unknown
         };
+
+    /// <summary>
+    /// Extracts SQL queries from chart agent output that was misrouted.
+    /// Handles both &lt;SQL&gt; tags and ```sql backtick fences.
+    /// </summary>
+    private static IEnumerable<StreamResult> ExtractSqlFromChartBuffer(string text)
+    {
+        // Try <SQL> tags first (preferred format)
+        var sqlTagMatches = SqlTagPattern.Matches(text);
+        foreach (Match m in sqlTagMatches)
+            yield return new StreamResult { SqlQuery = m.Groups[1].Value.Trim() };
+
+        if (sqlTagMatches.Count > 0)
+            yield break;
+
+        // Fallback: try ```sql ... ``` backtick fences
+        foreach (Match m in BacktickSqlPattern.Matches(text))
+            yield return new StreamResult { SqlQuery = m.Groups[1].Value.Trim() };
+    }
+
+    private static bool ContainsSql(string text) =>
+        SqlTagPattern.IsMatch(text) || BacktickSqlPattern.IsMatch(text);
 }
