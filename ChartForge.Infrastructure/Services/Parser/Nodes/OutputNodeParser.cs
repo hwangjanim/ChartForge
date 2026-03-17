@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using ChartForge.Core.Models;
 
 namespace ChartForge.Infrastructure.Services;
@@ -9,6 +10,10 @@ public class OutputNodeParser : INodeParser
     private const string CLOSING_THOUGHT_TAG = "</THOUGHT>";
     private const string OPENING_SQL_TAG = "<SQL>";
     private const string CLOSING_SQL_TAG = "</SQL>";
+
+    // Fallback: matches ```sql ... ``` when the LLM uses backtick fences instead of <SQL> tags
+    private static readonly Regex BacktickSqlPattern = new(
+        @"```sql\s*(.*?)\s*```", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public IEnumerable<StreamResult> Parse(string content, StreamParseState state)
     {
@@ -36,13 +41,24 @@ public class OutputNodeParser : INodeParser
                 if (afterThought.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
                 {
                     int sqlEnd = afterThought.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
-                    if (sqlEnd < 0) 
+                    if (sqlEnd < 0)
                         yield break; // SQL tag opened but not closed — keep buffering.
 
                     var sqlContent = afterThought[OPENING_SQL_TAG.Length..sqlEnd].Trim();
                     yield return new StreamResult { SqlQuery = sqlContent };
                     state.SqlClosed = true;
                     afterThought = afterThought[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
+                }
+                else
+                {
+                    // Fallback: try ```sql ... ``` backtick fences
+                    var backtickMatch = BacktickSqlPattern.Match(afterThought);
+                    if (backtickMatch.Success)
+                    {
+                        yield return new StreamResult { SqlQuery = backtickMatch.Groups[1].Value.Trim() };
+                        state.SqlClosed = true;
+                        afterThought = afterThought[(backtickMatch.Index + backtickMatch.Length)..].TrimStart('\n', '\r');
+                    }
                 }
 
                 state.OutputThoughtClosed = true;
@@ -66,10 +82,23 @@ public class OutputNodeParser : INodeParser
             }
             else
             {
-                // No THOUGHT block — flush the buffer through the content pipeline.
-                state.OutputThoughtClosed = true;
-                foreach (var r in ProcessOutputContent(buffered, state))
-                    yield return r;
+                // No THOUGHT block — check for backtick-fenced SQL before treating as content.
+                var backtickMatch = BacktickSqlPattern.Match(buffered);
+                if (backtickMatch.Success)
+                {
+                    yield return new StreamResult { SqlQuery = backtickMatch.Groups[1].Value.Trim() };
+                    state.SqlClosed = true;
+                    var afterSql = buffered[(backtickMatch.Index + backtickMatch.Length)..].TrimStart('\n', '\r');
+                    state.OutputThoughtClosed = true;
+                    foreach (var r in ProcessOutputContent(afterSql, state))
+                        yield return r;
+                }
+                else
+                {
+                    state.OutputThoughtClosed = true;
+                    foreach (var r in ProcessOutputContent(buffered, state))
+                        yield return r;
+                }
             }
             state.OutputBuffer.Clear();
         }
@@ -79,10 +108,9 @@ public class OutputNodeParser : INodeParser
             if (buffered.StartsWith(OPENING_SQL_TAG, StringComparison.OrdinalIgnoreCase))
             {
                 int sqlEnd = buffered.IndexOf(CLOSING_SQL_TAG, StringComparison.OrdinalIgnoreCase);
-                if (sqlEnd < 0) 
+                if (sqlEnd < 0)
                     yield break;
 
-                // Extract and yield the SQL query for execution by the caller.
                 var sqlContent = buffered[OPENING_SQL_TAG.Length..sqlEnd].Trim();
                 yield return new StreamResult { SqlQuery = sqlContent };
 
@@ -90,6 +118,19 @@ public class OutputNodeParser : INodeParser
                 var afterSql = buffered[(sqlEnd + CLOSING_SQL_TAG.Length)..].TrimStart('\n', '\r');
                 foreach (var r in ProcessOutputContent(afterSql, state))
                     yield return r;
+            }
+            else
+            {
+                // Fallback: try backtick-fenced SQL
+                var backtickMatch = BacktickSqlPattern.Match(buffered);
+                if (backtickMatch.Success)
+                {
+                    yield return new StreamResult { SqlQuery = backtickMatch.Groups[1].Value.Trim() };
+                    state.SqlClosed = true;
+                    var afterSql = buffered[(backtickMatch.Index + backtickMatch.Length)..].TrimStart('\n', '\r');
+                    foreach (var r in ProcessOutputContent(afterSql, state))
+                        yield return r;
+                }
             }
         }
     }

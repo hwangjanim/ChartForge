@@ -10,13 +10,16 @@ public class MainAgentParser : INodeParser
     private static readonly Regex TitleRegex =
         new(@"<TITLE>(.*?)</TITLE>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
     
-    private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)<\/SQL>", 
+    private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)<\/SQL>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    // Fallback: matches ```sql ... ``` when the LLM uses backtick fences instead of <SQL> tags
+    private static readonly Regex BacktickSqlPattern = new(
+        @"```sql\s*(.*?)\s*```", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public IEnumerable<StreamResult> Parse(string content, StreamParseState state)
     {
-        // throw new NotImplementedException();
-
-        if (string.IsNullOrEmpty(content)) 
+        if (string.IsNullOrEmpty(content))
             yield break;
 
         // MainAgent events are used solely for <TITLE> extraction.
@@ -31,11 +34,16 @@ public class MainAgentParser : INodeParser
             if (thoughtEnd < 0)
                 yield break; // Still buffering — keep going.
 
-
-            // Extract SQL from the thought buffer if present.
+            // Extract SQL from the thought buffer if present (<SQL> tags first, backtick fallback).
             var sqlMatch = SqlTagPattern.Match(buffered);
             if (sqlMatch.Success)
                 yield return new StreamResult { SqlQuery = sqlMatch.Groups[1].Value.Trim() };
+            else
+            {
+                var backtickMatch = BacktickSqlPattern.Match(buffered);
+                if (backtickMatch.Success)
+                    yield return new StreamResult { SqlQuery = backtickMatch.Groups[1].Value.Trim() };
+            }
 
 
 
