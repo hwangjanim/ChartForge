@@ -217,4 +217,16 @@ public class ChatStateService
         await _conversationService.RenameAsync(id, newTitle);
         Notify();
     }
+
+    // delete
+
+    public async Task DeleteConversationAsync(int id)
+    {
+        await _conversationService.SoftDeleteAsync(id);
+        Conversations.RemoveAll(c => c.Id == id);
+        if (ActiveConversation.Id == id)
+            NewConversation();
+        else
+            Notify();
+    }
 }
