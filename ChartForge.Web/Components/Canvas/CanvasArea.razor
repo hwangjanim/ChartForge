@@ -1,4 +1,5 @@
 @using ChartForge.Web.Services
+@using System.Text.Json
 @inject ChatStateService ChatState
 @inject IJSRuntime JS
 @implements IDisposable
@@ -84,16 +85,21 @@
             var chartCode = activeVersion.ChartSourceCode;
             var csv = ChatState.ActiveDataVersion?.RawData ?? "";
 
-            // Escaping the backticks just in case the csv has backticks
-            csv = csv.Replace("\\", "\\\\")
-                    .Replace("`", "\\`")
-                    .Replace("${", "\\${");
-
-            // inject the raw data 
+            // inject the data as JSON (parsed from CSV on the C# side to avoid
+            // comma-in-field issues that break naive JS CSV parsers)
             if (chartCode.Contains("__CHARTFORGE_DATA__")) {
+                var jsonData = CsvToJson(csv);
+
+                // Escape characters that would break a JS string literal
+                var escaped = jsonData
+                    .Replace("\\", "\\\\")
+                    .Replace("'", "\\'")
+                    .Replace("\r\n", "\\n")
+                    .Replace("\n", "\\n");
+
                 chartCode = chartCode.Replace(
                     "__CHARTFORGE_DATA__",
-                    $"`{csv}`"
+                    $"'{escaped}'"
                 );
             }
 
@@ -119,5 +125,110 @@
     void IDisposable.Dispose()
     {
         ChatState.OnChange -= HandleStateChanged;
+    }
+
+    /// <summary>
+    /// Converts RFC-compliant CSV (with quoted fields) to a JSON array of objects.
+    /// Handles commas, quotes, and newlines inside quoted field values.
+    /// </summary>
+    private static string CsvToJson(string csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv))
+            return "[]";
+
+        var lines = ParseCsvLines(csv);
+        if (lines.Count < 2) // Need at least headers + 1 data row
+            return "[]";
+
+        var headers = lines[0];
+        var result = new List<Dictionary<string, string>>();
+
+        for (int i = 1; i < lines.Count; i++)
+        {
+            var row = lines[i];
+            var obj = new Dictionary<string, string>();
+            for (int j = 0; j < headers.Count && j < row.Count; j++)
+            {
+                obj[headers[j]] = row[j];
+            }
+            result.Add(obj);
+        }
+
+        return JsonSerializer.Serialize(result);
+    }
+
+    /// <summary>
+    /// Parses CSV text into a list of rows, each being a list of field values.
+    /// Correctly handles quoted fields containing commas, newlines, and escaped quotes.
+    /// </summary>
+    private static List<List<string>> ParseCsvLines(string csv)
+    {
+        var rows = new List<List<string>>();
+        var fields = new List<string>();
+        var field = new System.Text.StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < csv.Length; i++)
+        {
+            char c = csv[i];
+
+            if (inQuotes)
+            {
+                if (c == '"')
+                {
+                    // Check for escaped quote ""
+                    if (i + 1 < csv.Length && csv[i + 1] == '"')
+                    {
+                        field.Append('"');
+                        i++; // skip next quote
+                    }
+                    else
+                    {
+                        inQuotes = false;
+                    }
+                }
+                else
+                {
+                    field.Append(c);
+                }
+            }
+            else
+            {
+                if (c == '"')
+                {
+                    inQuotes = true;
+                }
+                else if (c == ',')
+                {
+                    fields.Add(field.ToString());
+                    field.Clear();
+                }
+                else if (c == '\r')
+                {
+                    // skip \r, handle \n next
+                }
+                else if (c == '\n')
+                {
+                    fields.Add(field.ToString());
+                    field.Clear();
+                    if (fields.Count > 0)
+                        rows.Add(fields);
+                    fields = new List<string>();
+                }
+                else
+                {
+                    field.Append(c);
+                }
+            }
+        }
+
+        // Last field / last row
+        if (field.Length > 0 || fields.Count > 0)
+        {
+            fields.Add(field.ToString());
+            rows.Add(fields);
+        }
+
+        return rows;
     }
 }
