@@ -8,19 +8,21 @@
                    @bind:event="oninput"
                    @onkeydown="HandleEditKeyDown"
                    @onblur="CommitEdit"
-                   class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 outline-none text-gray-800"
+                   class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 outline-none text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700"
                    autofocus />
         </div>
     }
     else
     {
         <button @onclick="() => OnSelect.InvokeAsync(Conversation)"
-                class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50">
+                class="w-full text-left px-3 py-2 rounded-lg @(IsActive ? "bg-red-50 dark:bg-gray-700" : "hover: bg-gray-50 dark:hover:bg-gray-700/50")">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="text-xs shrink-0 opacity-50">↗</span>
-                <span class="text-sm truncate flex-1 text-gray-600">
+                <span class="text-sm truncate flex-1 @(IsActive ? "text-gray-800 dark:text-white  font-medium" : "text-gray-600 dark:text-gray-400")">
                     @Conversation.Title
                 </span>
+
+                @* let me edit *@
                 <div @onclick:stopPropagation="true"
                      @onclick="StartEditing"
                      class="shrink-0 text-gray-300 hover:text-gray-600 p-0.5 rounded cursor-pointer">
