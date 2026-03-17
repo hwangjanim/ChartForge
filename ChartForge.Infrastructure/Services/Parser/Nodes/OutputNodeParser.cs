@@ -185,11 +185,6 @@ public class OutputNodeParser : INodeParser
                         yield break;
                     }
 
-                    yield return new StreamResult
-                    {
-                        FinalChartCode = null
-                    };
-
                     int htmlEnd = endIdx + endingHtmlTag.Length;
 
                     state.IsInsideCodeBlock = false;

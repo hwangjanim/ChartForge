@@ -171,7 +171,7 @@
 
                 if (chunk.FinalChartCode is not null)
                 {
-                    var raw = MarkdownCodeExtractor.ExtractJavaScript(chunk.FinalChartCode);
+                    var raw = chunk.FinalChartCode;
 
                     var (cleanCode, _, _) = ThoughtBlockParser.Parse(raw);
 

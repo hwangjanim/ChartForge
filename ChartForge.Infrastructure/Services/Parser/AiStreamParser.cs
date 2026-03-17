@@ -8,10 +8,7 @@ public class AiStreamParser
 {
     private readonly Dictionary<WorkflowNodeType, INodeParser> parsers;
     private readonly StringBuilder jsonBuffer = new StringBuilder();
-    private const string OPENING_THOUGHT_TAG = "<THOUGHT>";
     private const string CLOSING_THOUGHT_TAG = "</THOUGHT>";
-    private const string OPENING_SQL_TAG = "<SQL>";
-    private const string CLOSING_SQL_TAG = "</SQL>";
 
     public AiStreamParser()
     {
@@ -97,7 +94,6 @@ public class AiStreamParser
 
     public IEnumerable<StreamResult> RouteToNodeParser(JsonElement element, StreamParseState state)
     {
-        Console.WriteLine($"{state.ActiveNode}");
         if (!element.TryGetProperty("type", out var typeProp))
             yield break;
         
