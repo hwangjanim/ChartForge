@@ -80,7 +80,11 @@
         }
     }
 
-    public async Task HandleSendMessage(string userPrompt) {
+    public async Task HandleSendMessage((string userPrompt, List<ParsedAttachment> DataFiles) args) {
+
+        var prompt = args.userPrompt;
+        var files = args.DataFiles;
+
         cts = new CancellationTokenSource();
         CancellationToken token = cts.Token;
 
@@ -99,7 +103,7 @@
         @* create new user message *@
         Message newUserMessage = new Message {
             Role = MessageRole.User,
-            Content = userPrompt,
+            Content = prompt,
             SentAtUtc = DateTime.UtcNow,
             SequenceNumber = conversation.Messages.Count + 1,
             ConversationId = conversation.Id,
@@ -121,7 +125,7 @@
 
         if (isFirstMessage)
         {
-            await ChatState.AddConversationToListAsync(userPrompt);
+            await ChatState.AddConversationToListAsync(prompt);
         }
 
         @* make the payload *@
@@ -137,7 +141,7 @@
         }
 
         ChatRequest request = new ChatRequest {
-            UserPrompt = userPrompt,
+            UserPrompt = prompt,
             CurrentChartCode = ChatState.ActiveChartVersion?.ChartSourceCode,
             CurrentData = ChatState.ActiveDataVersion is not null
                 ? $"LOADED CSV DATA (Showing headers and first 3 rows only):\n{DataSummaryService.GetCsvSummary(ChatState.ActiveDataVersion.RawData)}"

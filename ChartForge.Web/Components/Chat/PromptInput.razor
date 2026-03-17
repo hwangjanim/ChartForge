@@ -1,7 +1,9 @@
 @using ChartForge.Core.Models
+@using ChartForge.Infrastructure.Services
 @using ChartForge.Web.Components.Icons
 @inject IJSRuntime JS
 @inject ChatStateService ChatState;
+@inject FileParserService FileParser;
 
 @* Attachment preview strip *@
 @if (_attachments.Any())
@@ -91,24 +93,39 @@
 <InputFile id="imageInput" OnChange="OnImagesSelected" multiple accept="image/*" class="hidden" />
 
 @code {
-    [Parameter] public EventCallback<string> OnSend { get; set; }
+    [Parameter] public EventCallback<(string Prompt, List<ParsedAttachment> DataFiles)> OnSend { get; set; }
     
     private bool IsStreaming => ChatState.IsStreaming;
 
     private MessageContext _newChat = new MessageContext { Role = "user" };
     private List<AttachmentPreview> _attachments = new();
 
-    private record AttachmentPreview(string Name, bool IsImage, IBrowserFile File);
-
     private async Task SendRequest()
     {
-        if (!string.IsNullOrWhiteSpace(_newChat.Content) || _attachments.Any())
-        {
+        if (_attachments.Any(a => a.IsParsing)) 
+            return;
+
+        if (string.IsNullOrEmpty(_newChat.Content)) 
+            return;
+
             string userPrompt = _newChat.Content;
             _newChat.Content = "";
-            await OnSend.InvokeAsync(userPrompt);
+
+            var dataFiles = _attachments
+                .Where(a => !a.IsImage && a.ParsedData is not null)
+                .Select(a => new ParsedAttachment(a.Name, a.ParsedData))
+                .ToList();
+
+@*             
+            Console.WriteLine($"== [DATA FILES] == ");
+            Console.WriteLine($"Is DataFiles null?: {dataFiles is null}");
+            Console.WriteLine($"Count: {dataFiles.Count}");
+            foreach (var file in dataFiles) {
+                Console.WriteLine($"FILE NAME: {file.FileName}");
+            } *@
+
             _attachments.Clear();
-        }
+            await OnSend.InvokeAsync((userPrompt, dataFiles));
     }
 
     private async void HandleKeyDown(KeyboardEventArgs e)
@@ -131,23 +148,48 @@
 
     private void OnFilesSelected(InputFileChangeEventArgs e)
     {
+        Console.WriteLine("Selected a file");
         if (e.GetMultipleFiles().Count > 10) 
             return;
 
-        foreach (IBrowserFile file in e.GetMultipleFiles(10))
-        {
-            if (!_attachments.Any(a => a.Name == file.Name))
-                _attachments.Add(new AttachmentPreview(file.Name, IsImageFile(file.Name), file));
+        var files = e.GetMultipleFiles(maximumFileCount: 10);
+
+        foreach(var file in files) {
+            if (_attachments.Any(a => a.Name == file.Name))
+                continue;
+
+            bool isImage = IsImageFile(file.Name);
+            var preview = new AttachmentPreview {
+                Name = file.Name,
+                IsImage = isImage,
+                IsParsing = !isImage
+            };
+
+            _attachments.Add(preview);
+            StateHasChanged();
+
+            if (!isImage) {
+                _ = ParseFileAsync(preview, file);
+                Console.WriteLine($"Done parsing File: {preview.Name}");
+                Console.WriteLine($"Parsed Data: {preview.ParsedData.Count}");
+            }
+        }
+    }
+
+    private async Task ParseFileAsync(AttachmentPreview preview, IBrowserFile file) {
+        try {
+            preview.ParsedData = await FileParser.ParseFileAsync(file);
+        } catch (Exception e) {
+            preview.ParseError = $"Could not parse {file.Name}: {e.Message}";
+            Console.Error.WriteLine(preview.ParseError);
+        } finally {
+            preview.IsParsing = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
     private void OnImagesSelected(InputFileChangeEventArgs e)
     {
-        foreach (var file in e.GetMultipleFiles(10))
-        {
-            if (!_attachments.Any(a => a.Name == file.Name))
-                _attachments.Add(new AttachmentPreview(file.Name, true, file));
-        }
     }
 
     private void RemoveAttachment(AttachmentPreview attachment) =>

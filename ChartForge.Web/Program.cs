@@ -25,6 +25,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<ISqlQueryService, SqlQueryService>();
+builder.Services.AddScoped<FileParserService>();
 builder.Services.AddScoped<ChatStateService>();
 
 builder.Services.AddHttpClient<IChatStreamService, N8nChatStreamService>(client =>
