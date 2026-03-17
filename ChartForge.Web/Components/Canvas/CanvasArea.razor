@@ -8,7 +8,7 @@
 
     <!-- Chart view: always in the DOM so the JS canvas reference survives tab switches.
          Hidden via inline style when the Data tab is active; restored on switch back. -->
-    <div style="@(ChatState.ActiveTab == CanvasTab.Chart ? "" : "display:none;")">
+    <div class="w-full h-full" style="@(ChatState.ActiveTab == CanvasTab.Chart ? "" : "display:none;")">
         @if (ChatState.ChartStates.Count <= 0)
         {
             <EmptyCanvasState />
@@ -23,14 +23,16 @@
     <!-- Data view -->
     @if (ChatState.ActiveTab == CanvasTab.Data)
     {
-        @if (ChatState.ActiveDataVersion is null)
-        {
-            <EmptyCanvasState />
-        }
-        else
-        {
-            <DataViewer RawData="@ChatState.ActiveDataVersion.RawData" />
-        }
+        <div class="w-full h-full">
+            @if (ChatState.ActiveDataVersion is null)
+            {
+                <EmptyCanvasState />
+            }
+            else
+            {
+                <DataViewer RawData="@ChatState.ActiveDataVersion.RawData" />
+            }
+        </div>
     }
 
 </div>
@@ -83,23 +85,25 @@
             && !string.IsNullOrWhiteSpace(activeVersion.ChartSourceCode))
         {
             var chartCode = activeVersion.ChartSourceCode;
-            var csv = ChatState.ActiveDataVersion?.RawData ?? "";
+            var csv = "";
+
+            if (!string.IsNullOrEmpty(ChatState.ActiveDataVersion?.JsonData)) {
+                csv = ChatState.ActiveDataVersion?.JsonData;
+            } else if (!string.IsNullOrEmpty(ChatState.ActiveDataVersion?.RawData)) {
+                csv = ChatState.ActiveDataVersion?.RawData;
+            }
 
             // inject the data as JSON (parsed from CSV on the C# side to avoid
             // comma-in-field issues that break naive JS CSV parsers)
             if (chartCode.Contains("__CHARTFORGE_DATA__")) {
-                var jsonData = CsvToJson(csv);
+                 csv = csv.Replace("\\", "\\\\")
+                    .Replace("`", "\\`")
+                    .Replace("${", "\\${");
 
-                // Escape characters that would break a JS string literal
-                var escaped = jsonData
-                    .Replace("\\", "\\\\")
-                    .Replace("'", "\\'")
-                    .Replace("\r\n", "\\n")
-                    .Replace("\n", "\\n");
 
                 chartCode = chartCode.Replace(
                     "__CHARTFORGE_DATA__",
-                    $"'{escaped}'"
+                    $"`{csv}`"
                 );
             }
 

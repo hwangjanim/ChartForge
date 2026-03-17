@@ -198,6 +198,8 @@ public class AiStreamParser
         nodeName switch
         {
             string n when n.Contains("Main Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
+            string n when n.Contains("Main", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
+            string n when n.Contains("MainAgent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
             string n when n.Contains("AI Agent", StringComparison.OrdinalIgnoreCase) => WorkflowNodeType.MainAgent,
             string n when n.Contains("Output", StringComparison.OrdinalIgnoreCase)     => WorkflowNodeType.OutputNode,
             string n when n.Contains("Charts.js", StringComparison.OrdinalIgnoreCase)  => WorkflowNodeType.ChartAgent,

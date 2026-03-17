@@ -1,5 +1,8 @@
 using ChartForge.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Protocols;
+using System.Configuration;
 
 namespace ChartForge.Infrastructure.Data;
 

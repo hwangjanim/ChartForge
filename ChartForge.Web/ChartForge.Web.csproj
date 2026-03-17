@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -22,7 +24,7 @@
   <!-- Seed / test data files. Copied to the output directory so the app can read them at runtime. -->
   <ItemGroup>
     <Content Include="..\102heatmaps.csv" Link="SeedData\102heatmaps.csv" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\102summary.csv"  Link="SeedData\102summary.csv"  CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\102summary.csv" Link="SeedData\102summary.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

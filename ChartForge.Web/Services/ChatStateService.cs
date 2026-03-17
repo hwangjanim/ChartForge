@@ -149,12 +149,13 @@ public class ChatStateService
         IsStreaming = true;
     }
 
+    public async Task EndStream() => IsStreaming = false;
+
     /// <summary>
-    /// Ends streaming, persists queued messages and any new chart/data version to the database.
+    /// persists queued messages and any new chart/data version to the database.
     /// </summary>
-    public async Task CompleteStreamingAsync(ChartState? newVersion, DataState? newDataVersion = null)
+    public async Task UpdateStates(ChartState? newVersion, DataState? newDataVersion = null)
     {
-        IsStreaming = false;
 
         if (newVersion is null && newDataVersion is null)
         {

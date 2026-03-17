@@ -10,8 +10,8 @@ public class MainAgentParser : INodeParser
     private static readonly Regex TitleRegex =
         new(@"<TITLE>(.*?)</TITLE>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
     
-    private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)<\/SQL>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex SqlTagPattern = new Regex(@"<SQL>(.*?)</SQL>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
 
     // Fallback: matches ```sql ... ``` when the LLM uses backtick fences instead of <SQL> tags
     private static readonly Regex BacktickSqlPattern = new(

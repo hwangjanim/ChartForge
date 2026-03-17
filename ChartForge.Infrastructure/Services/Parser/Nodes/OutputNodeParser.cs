@@ -237,7 +237,7 @@ public class OutputNodeParser : INodeParser
         } 
         else
         {
-            while (pos <= text.Length)
+            while (pos < text.Length)
             {
                 int fenceIdx = text.IndexOf(fence, pos, StringComparison.Ordinal);
 
