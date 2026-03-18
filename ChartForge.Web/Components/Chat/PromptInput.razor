@@ -149,6 +149,14 @@
         foreach(var file in files) {
             if (_attachments.Any(a => a.Name == file.Name))
                 continue;
+            
+            bool isInvalidFileType = IsInvalidFileType(file.Name);
+
+            if (isInvalidFileType) {
+                Console.Error.WriteLine($"File type {file.Name} not supported");
+                return;
+            }
+            
 
             bool isImage = IsImageFile(file.Name);
             var preview = new AttachmentPreview {
@@ -191,5 +199,10 @@
     {
         string? ext = Path.GetExtension(name).ToLowerInvariant();
         return ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".svg";
+    }
+    private static bool IsInvalidFileType(string name)
+    {
+        string? ext = Path.GetExtension(name).ToLowerInvariant();
+        return ext is not ".xlsx" or ".csv";
     }
 }

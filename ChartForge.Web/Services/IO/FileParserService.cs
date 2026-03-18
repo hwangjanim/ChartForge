@@ -42,6 +42,7 @@ public class FileParserService
 
         // fk this shi
         // why tf is the heatmap csv uses spaces for the fking headers
+        // sa db kasi ni-replace ung spaces sa underscore
         // yan tuloy di sya sync sa db IUSDUBHBJSBF
         // JUST KEEP THE "_"!!!!!!!!!
         // kasalanan mo to file upload
