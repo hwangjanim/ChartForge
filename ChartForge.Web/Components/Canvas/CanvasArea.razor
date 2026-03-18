@@ -96,18 +96,14 @@
             // inject the data as JSON (parsed from CSV on the C# side to avoid
             // comma-in-field issues that break naive JS CSV parsers)
             if (chartCode.Contains("__CHARTFORGE_DATA__")) {
-                var jsonData = CsvToJson(csv);
+                 csv = csv.Replace("\\", "\\\\")
+                    .Replace("`", "\\`")
+                    .Replace("${", "\\${");
 
-                // Escape characters that would break a JS string literal
-                var escaped = jsonData
-                    .Replace("\\", "\\\\")
-                    .Replace("'", "\\'")
-                    .Replace("\r\n", "\\n")
-                    .Replace("\n", "\\n");
 
                 chartCode = chartCode.Replace(
                     "__CHARTFORGE_DATA__",
-                    $"'{escaped}'"
+                    $"`{csv}`"
                 );
             }
 
