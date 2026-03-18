@@ -116,16 +116,8 @@
                 .Select(a => new ParsedAttachment(a.Name, a.ParsedData))
                 .ToList();
 
-@*             
-            Console.WriteLine($"== [DATA FILES] == ");
-            Console.WriteLine($"Is DataFiles null?: {dataFiles is null}");
-            Console.WriteLine($"Count: {dataFiles.Count}");
-            foreach (var file in dataFiles) {
-                Console.WriteLine($"FILE NAME: {file.FileName}");
-            } *@
-
             _attachments.Clear();
-            await OnSend.InvokeAsync((userPrompt, dataFiles));
+            @* await OnSend.InvokeAsync((userPrompt, dataFiles)); *@
     }
 
     private async void HandleKeyDown(KeyboardEventArgs e)

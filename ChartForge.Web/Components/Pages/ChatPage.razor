@@ -11,6 +11,8 @@
 @using ChartForge.Web.Components.Canvas
 @using ChartForge.Web.Services
 @using System.Text
+@using System.Text.Json
+@using Microsoft.EntityFrameworkCore.Infrastructure
 
 <div class="flex h-full w-full bg-white dark:bg-slate-900">
     <section class="flex flex-col w-full lg:w-[30%] xl:w-[25%] h-full border-r border-gray-200 dark:border-slate-700 relative">
@@ -32,7 +34,7 @@
         <div class="flex-shrink-0 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <ChartForge.Web.Components.Canvas.CanvasHeader />
         </div>
-        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
+        <div class="flex-1 overflow-hidden p-6 flex flex-col">
             <CanvasArea ActiveConversation="ActiveConversation"/>
         </div>
     </section>
@@ -128,6 +130,24 @@
             await ChatState.AddConversationToListAsync(prompt);
         }
 
+        // parse uploaded files into a new data state
+        if (files.Any()) {
+            var mergedData = files.SelectMany(f => f.Data).ToList();
+            var csvString = ConvertResultsToCsv(mergedData);
+            var json = JsonSerializer.Serialize(mergedData);
+
+            var newDataVersion = new DataState {
+                VersionNumber = conversation.DataStates.Count + 1,
+                RawData = csvString,
+                JsonData = json,
+                CreatedAtUtc = DateTime.UtcNow,
+                ConversationId = conversation.Id,
+            };
+
+            await ChatState.UpdateStates(newVersion: null, newDataVersion);
+            ChatState.SetTab(CanvasTab.Data);
+        }
+
         @* make the payload *@
         string dbSchema = "";
         try
@@ -188,7 +208,7 @@
                         CreatedAtUtc = DateTime.UtcNow,
                         ConversationId = conversation.Id,
                     };
-                    await ChatState.CompleteStreamingAsync(newVersion);
+                    await ChatState.UpdateStates(newVersion);
                 }
 
                 if (chunk.FinalData is not null)
@@ -202,7 +222,7 @@
                         CreatedAtUtc = DateTime.UtcNow,
                         ConversationId = conversation.Id,
                     };
-                    await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
+                    await ChatState.UpdateStates(newVersion: null, newDataVersion);
                 }
 
                 if (chunk.SqlQuery is not null && !sqlExecuted)
@@ -212,6 +232,7 @@
                     {
                         var queryResults = await SqlQueryService.ExecuteQueryAsync(chunk.SqlQuery);
                         var csvData = ConvertResultsToCsv(queryResults);
+                        var json = JsonSerializer.Serialize(queryResults);
 
                         if (!string.IsNullOrWhiteSpace(csvData))
                         {
@@ -219,10 +240,11 @@
                             {
                                 VersionNumber = conversation.DataStates.Count + 1,
                                 RawData = csvData,
+                                JsonData = json,
                                 CreatedAtUtc = DateTime.UtcNow,
                                 ConversationId = conversation.Id,
                             };
-                            await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
+                            await ChatState.UpdateStates(newVersion: null, newDataVersion);
                             ChatState.SetTab(CanvasTab.Data);
                         }
                     }
@@ -242,6 +264,9 @@
                     await ScrollToBottom();
                 }
             }
+
+            // done streaming
+            await ChatState.EndStream();
 
             // Post-processing: strip the <THOUGHT> block and extract the title from the
             // full assembled content. This is the guaranteed safety net — the streaming-layer
@@ -268,12 +293,12 @@
                         CreatedAtUtc = DateTime.UtcNow,
                         ConversationId = conversation.Id,
                     };
-                    await ChatState.CompleteStreamingAsync(newVersion: null, newDataVersion);
+                    await ChatState.UpdateStates(newVersion: null, newDataVersion);
                 }
 
             }
 
-            await ChatState.CompleteStreamingAsync(newVersion: null);
+            await ChatState.UpdateStates(newVersion: null);
         }
         catch (Exception ex)
         {
