@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using ChartForge.Core.Interfaces;
 using Dapper;
@@ -13,7 +13,7 @@ public class SqlQueryService : ISqlQueryService
 
     public SqlQueryService(IConfiguration configuration)
     {
-        ConnectionString = configuration.GetConnectionString("SecondDefault")!;
+        ConnectionString = configuration.GetConnectionString("DefaultConnection")!;
     }
     public async Task<IEnumerable<IDictionary<string, object?>>> ExecuteQueryAsync(string sql)
     {
@@ -48,7 +48,7 @@ public class SqlQueryService : ISqlQueryService
         }
 
         // Replace [Any Bracketed Identifier] with the exact DB column name if a fuzzy match is found.
-        // e.g. [Vendor License] → key "vendorlicense" → matches VendorLicense → [VendorLicense]
+        // e.g. [Vendor License] â†’ key "vendorlicense" â†’ matches VendorLicense â†’ [VendorLicense]
         return Regex.Replace(sql, @"\[([^\]]+)\]", match =>
         {
             var inner = match.Groups[1].Value;
@@ -68,7 +68,7 @@ public class SqlQueryService : ISqlQueryService
               ORDER BY TABLE_NAME, ORDINAL_POSITION");
 
         var sb = new StringBuilder(
-            "IMPORTANT: The following are the EXACT SQL column names. Use them verbatim — do NOT add spaces, change casing, or invent new names.\n" +
+            "IMPORTANT: The following are the EXACT SQL column names. Use them verbatim â€” do NOT add spaces, change casing, or invent new names.\n" +
             "Always wrap table and column names in square brackets, e.g. SELECT [ColumnName] FROM [TableName].\n\n");
 
         foreach (var table in rows.GroupBy(r => r.Table))
