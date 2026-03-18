@@ -13,7 +13,7 @@ public class SqlQueryService : ISqlQueryService
 
     public SqlQueryService(IConfiguration configuration)
     {
-        ConnectionString = configuration.GetConnectionString("DefaultConnection")!;
+        ConnectionString = configuration.GetConnectionString("SecondDefault")!;
     }
     public async Task<IEnumerable<IDictionary<string, object?>>> ExecuteQueryAsync(string sql)
     {
