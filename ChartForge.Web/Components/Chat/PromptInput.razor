@@ -117,7 +117,7 @@
                 .ToList();
 
             _attachments.Clear();
-            @* await OnSend.InvokeAsync((userPrompt, dataFiles)); *@
+            await OnSend.InvokeAsync((userPrompt, dataFiles));
     }
 
     private async void HandleKeyDown(KeyboardEventArgs e)
