@@ -8,16 +8,16 @@
 }
 else
 {
-    <div class="flex flex-col h-full bg-gray-950 text-gray-200 rounded-lg overflow-hidden border border-gray-700">
+    <div class="flex flex-col h-full bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600">
 
         <!-- Scrollable table area -->
         <div class="flex-1 overflow-auto">
             <table class="w-full text-sm border-collapse">
-                <thead class="sticky top-0 z-10 bg-gray-900">
+                <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-slate-700">
                     <tr>
                         @foreach (var header in _headers)
                         {
-                            <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-700 whitespace-nowrap">
+                            <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 border-b border-gray-200 dark:border-slate-600 whitespace-nowrap">
                                 @header
                             </th>
                         }
@@ -26,10 +26,10 @@ else
                 <tbody>
                     @foreach (var row in PagedRows)
                     {
-                        <tr class="border-b border-gray-800 hover:bg-gray-800 transition-colors duration-75">
+                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-75">
                             @foreach (var cell in row)
                             {
-                                <td class="px-4 py-2 text-gray-300 whitespace-nowrap">@cell</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-slate-300 whitespace-nowrap">@cell</td>
                             }
                         </tr>
                     }
@@ -40,23 +40,23 @@ else
         <!-- Pagination footer -->
         @if (TotalPages > 1)
         {
-            <div class="flex-shrink-0 flex items-center justify-between px-4 py-2 border-t border-gray-700 bg-gray-900 text-xs text-gray-400">
+            <div class="flex-shrink-0 flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-500 dark:text-slate-400">
                 <span>
                     Rows @((_currentPage * PageSize) + 1)–@(Math.Min((_currentPage + 1) * PageSize, _rows.Count))
                     of @_rows.Count
                 </span>
                 <div class="flex items-center gap-1">
-                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    <button class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
                             disabled="@(_currentPage == 0)"
                             @onclick="() => _currentPage = 0">&laquo;</button>
-                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    <button class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
                             disabled="@(_currentPage == 0)"
                             @onclick="() => _currentPage--">&lsaquo; Prev</button>
                     <span class="px-3">@(_currentPage + 1) / @TotalPages</span>
-                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    <button class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
                             disabled="@(_currentPage >= TotalPages - 1)"
                             @onclick="() => _currentPage++">Next &rsaquo;</button>
-                    <button class="px-2 py-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    <button class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
                             disabled="@(_currentPage >= TotalPages - 1)"
                             @onclick="() => _currentPage = TotalPages - 1">&raquo;</button>
                 </div>
