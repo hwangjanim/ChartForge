@@ -88,8 +88,6 @@
         </div>
     </div>
 
-@* Hidden file inputs *@
-<InputFile id="fileInput" OnChange="OnFilesSelected" multiple class="hidden" />
 <InputFile id="imageInput" OnChange="OnImagesSelected" multiple accept="image/*" class="hidden" />
 
 @code {
@@ -126,11 +124,6 @@
         {
             await SendRequest();
         }
-    }
-
-    private async Task TriggerFileInput()
-    {
-        await JS.InvokeVoidAsync("document.getElementById('fileInput').click");
     }
 
     private async Task TriggerImageInput()
